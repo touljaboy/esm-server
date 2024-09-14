@@ -25,8 +25,8 @@ type Employee struct {
 
 type Client struct {
 	ID          int64  `json:"id"`
+	Name        string `json:"name"`
 	Description string `json:"description"`
-	IsSecret    bool   `json:"isSecret"`
 }
 
 type Project struct {
@@ -39,6 +39,7 @@ type Project struct {
 	IsSecret    bool   `json:"isSecret"`
 }
 
+// TODO this code also begins to get pretty repetitive, maybe there is a way to generalize the functions?
 func getEmployees(context *gin.Context) {
 	employees, err := sqlGetAllEmployees()
 	if err != nil {
@@ -55,6 +56,15 @@ func getProjects(context *gin.Context) {
 		return
 	}
 	context.IndentedJSON(http.StatusOK, projects)
+}
+
+func getClients(context *gin.Context) {
+	clients, err := sqlGetAllClients()
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, clients)
 }
 
 // TODO the following code seems very similar. Try and find a way to generalize such code
@@ -78,6 +88,28 @@ func sqlGetAllProjects() ([]Project, error) {
 		return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
 	}
 	return projects, nil
+}
+
+func sqlGetAllClients() ([]Client, error) {
+	var clients []Client
+
+	rows, err := db.Query("SELECT * FROM Clients")
+	if err != nil {
+		return nil, fmt.Errorf("sqlGetAllClients: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var client Client
+		if err := rows.Scan(&client.ID, &client.Name, &client.Description); err != nil {
+			return nil, fmt.Errorf("sqlGetAllClients: %v", err)
+		}
+		clients = append(clients, client)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("sqlGetAllClients: %v", err)
+	}
+	return clients, nil
 }
 
 func sqlGetAllEmployees() ([]Employee, error) {
@@ -131,6 +163,7 @@ func main() {
 	router := gin.Default()
 	router.GET("/employees", getEmployees)
 	router.GET("/projects", getProjects)
+	router.GET("/clients", getClients)
 	router.Run("localhost:9090")
 
 }
