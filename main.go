@@ -29,9 +29,11 @@ type Client struct {
 	IsSecret    bool   `json:"isSecret"`
 }
 
-type Projects struct {
-	ID          int64  `json:"id"`
+type Project struct {
+	EntryId     int64  `json:"entry_id"`
+	ProjectId   int64  `json:"project_id"`
 	ClientID    int    `json:"client_id"`
+	EmployeeId  int64  `json:"employee_id"`
 	FocusArea   string `json:"focus_area"`
 	Description string `json:"description"`
 	IsSecret    bool   `json:"isSecret"`
@@ -41,8 +43,41 @@ func getEmployees(context *gin.Context) {
 	employees, err := sqlGetAllEmployees()
 	if err != nil {
 		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 	context.IndentedJSON(http.StatusOK, employees)
+}
+
+func getProjects(context *gin.Context) {
+	projects, err := sqlGetAllProjects()
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, projects)
+}
+
+// TODO the following code seems very similar. Try and find a way to generalize such code
+func sqlGetAllProjects() ([]Project, error) {
+	var projects []Project
+
+	rows, err := db.Query("SELECT * FROM projects")
+	if err != nil {
+		return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var project Project
+		if err := rows.Scan(&project.EntryId, &project.ProjectId, &project.ClientID, &project.EmployeeId, &project.FocusArea, &project.Description, &project.IsSecret); err != nil {
+			return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
+		}
+		projects = append(projects, project)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
+	}
+	return projects, nil
 }
 
 func sqlGetAllEmployees() ([]Employee, error) {
@@ -95,6 +130,7 @@ func main() {
 	//Configure endpoints
 	router := gin.Default()
 	router.GET("/employees", getEmployees)
+	router.GET("/projects", getProjects)
 	router.Run("localhost:9090")
 
 }
