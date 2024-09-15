@@ -35,8 +35,8 @@ type Project struct {
 // ProjectFull is used to combine Project with Employee to add an EmployeeRole. This way, the EmployeeFull can have
 // all the information combined about an Employee
 type ProjectFull struct {
-	Project      Project `json:"project"`
 	EmployeeRole string  `json:"employee_role"`
+	Project      Project `json:"project"`
 }
 
 type Employee struct {
@@ -52,9 +52,9 @@ type EmployeeFull struct {
 	Projects []ProjectFull `json:"projects"`
 }
 
-//TODO better table design idea - create a new table EmployeeSkills in sql. When querying from EmployeeSkills joined with Employee, fill in the entire, singular Employee struct
-
 // TODO this code also begins to get pretty repetitive, maybe there is a way to generalize the functions?
+
+// TODO need way better error messages to get sent, because this fucking sucks dude, no logs, no anything to debug
 func getEmployees(context *gin.Context) {
 	employees, err := sqlGetAllEmployees()
 	if err != nil {
@@ -80,6 +80,70 @@ func getClients(context *gin.Context) {
 		return
 	}
 	context.IndentedJSON(http.StatusOK, clients)
+}
+
+func getFullEmployees(context *gin.Context) {
+	fullEmployees, err := sqlGetFullEmployees()
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, fullEmployees)
+}
+
+func sqlGetFullEmployees() ([]EmployeeFull, error) {
+	var employeesFull []EmployeeFull
+
+	//first, get all the employees
+	employees, err := sqlGetAllEmployees()
+	if err != nil {
+		return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
+	}
+
+	//iterate through each employee and find associated projects and skills. Then append employeesFull
+	for _, employee := range employees {
+		var employeeFull EmployeeFull
+		var skills []Skill
+		var projects []ProjectFull
+
+		//find associated skills
+		rows, err := db.Query("SELECT s.skill_class, s.skill, e.skill_level FROM EmployeeSkills AS e "+
+			"INNER JOIN Skills AS s ON e.skill_id = s.skill_id WHERE employee_id = ?", employee.EmployeeId)
+		if err != nil {
+			return nil, fmt.Errorf("sqlGetFullEmployees: %v", err)
+		}
+		for rows.Next() {
+			var skill Skill
+			if err := rows.Scan(&skill.SkillClass, &skill.Skill, &skill.SkillLevel); err != nil {
+				return nil, fmt.Errorf("sqlGetFullEmployees: %v", err)
+			}
+			skills = append(skills, skill)
+		}
+
+		//find associate projects
+		rows, err = db.Query("SELECT a.*, b.employee_role FROM Projects AS a "+
+			"INNER JOIN ProjectDetails as b  ON a.project_id = b.project_id WHERE employee_id = ?", employee.EmployeeId)
+		if err != nil {
+			return nil, fmt.Errorf("sqlGetFullEmployees: %v", err)
+		}
+		for rows.Next() {
+			var projectFull ProjectFull
+
+			if err := rows.Scan(&projectFull.Project.ProjectId,
+				&projectFull.Project.ClientId, &projectFull.Project.FocusArea,
+				&projectFull.Project.Description, &projectFull.Project.IsSecret, &projectFull.EmployeeRole); err != nil {
+				return nil, fmt.Errorf("sqlGetFullEmployees: %v", err)
+			}
+			projects = append(projects, projectFull)
+		}
+		employeeFull.Employee = employee
+		employeeFull.Skills = skills
+		employeeFull.Projects = projects
+
+		employeesFull = append(employeesFull, employeeFull)
+	}
+
+	return employeesFull, nil
 }
 
 // TODO the following code seems very similar. Try and find a way to generalize such code
@@ -177,6 +241,7 @@ func main() {
 	//Configure endpoints
 	router := gin.Default()
 	router.GET("/employees", getEmployees)
+	router.GET("/fullEmployees", getFullEmployees)
 	router.GET("/projects", getProjects)
 	router.GET("/clients", getClients)
 	router.Run("localhost:9090")
