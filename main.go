@@ -11,18 +11,13 @@ import (
 )
 
 //Define structs to be used for representing the db data
+//For now, I assume that struct EmployeeFull will be the "highest in hierarchy"
 
-type Employee struct {
-	EntryId    int64  `json:"entry_id"`
-	EmployeeId int64  `json:"employee_id"`
-	Name       string `json:"name"`
-	Lastname   string `json:"lastname"`
-	FocusArea  string `json:"focus_area"`
+type Skill struct {
 	SkillClass string `json:"skill_class"`
 	Skill      string `json:"skill"`
 	SkillLevel int    `json:"skill_level"`
 }
-
 type Client struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name"`
@@ -30,14 +25,34 @@ type Client struct {
 }
 
 type Project struct {
-	EntryId     int64  `json:"entry_id"`
 	ProjectId   int64  `json:"project_id"`
-	ClientID    int    `json:"client_id"`
-	EmployeeId  int64  `json:"employee_id"`
+	ClientId    int    `json:"client_id"`
 	FocusArea   string `json:"focus_area"`
 	Description string `json:"description"`
 	IsSecret    bool   `json:"isSecret"`
 }
+
+// ProjectFull is used to combine Project with Employee to add an EmployeeRole. This way, the EmployeeFull can have
+// all the information combined about an Employee
+type ProjectFull struct {
+	Project      Project `json:"project"`
+	EmployeeRole string  `json:"employee_role"`
+}
+
+type Employee struct {
+	EmployeeId int64  `json:"employee_id"`
+	Name       string `json:"name"`
+	Lastname   string `json:"lastname"`
+	FocusArea  string `json:"focus_area"`
+}
+
+type EmployeeFull struct {
+	Employee Employee      `json:"employee"`
+	Skills   []Skill       `json:"skills"`
+	Projects []ProjectFull `json:"projects"`
+}
+
+//TODO better table design idea - create a new table EmployeeSkills in sql. When querying from EmployeeSkills joined with Employee, fill in the entire, singular Employee struct
 
 // TODO this code also begins to get pretty repetitive, maybe there is a way to generalize the functions?
 func getEmployees(context *gin.Context) {
@@ -79,7 +94,7 @@ func sqlGetAllProjects() ([]Project, error) {
 
 	for rows.Next() {
 		var project Project
-		if err := rows.Scan(&project.EntryId, &project.ProjectId, &project.ClientID, &project.EmployeeId, &project.FocusArea, &project.Description, &project.IsSecret); err != nil {
+		if err := rows.Scan(&project.ProjectId, &project.ClientId, &project.FocusArea, &project.Description, &project.IsSecret); err != nil {
 			return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
 		}
 		projects = append(projects, project)
@@ -123,7 +138,7 @@ func sqlGetAllEmployees() ([]Employee, error) {
 
 	for rows.Next() {
 		var emp Employee
-		if err := rows.Scan(&emp.EntryId, &emp.EmployeeId, &emp.Name, &emp.Lastname, &emp.FocusArea, &emp.SkillClass, &emp.Skill, &emp.SkillLevel); err != nil {
+		if err := rows.Scan(&emp.EmployeeId, &emp.Name, &emp.Lastname, &emp.FocusArea); err != nil {
 			return nil, fmt.Errorf("sqlGetAllEmployees %v", err)
 		}
 		employees = append(employees, emp)
