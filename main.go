@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 //Define structs to be used for representing the db data
@@ -71,6 +72,15 @@ func getEmployees(context *gin.Context) {
 	context.IndentedJSON(http.StatusOK, employees)
 }
 
+func getEmployee(context *gin.Context) {
+	employee, err := sqlGetEmployeeById(context.Param("id"))
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, employee)
+}
+
 func getProjects(context *gin.Context) {
 	projects, err := sqlGetAllProjects()
 	if err != nil {
@@ -114,12 +124,42 @@ func addEmployee(context *gin.Context) {
 		return
 	}
 
-	id, err := sqlAddEmp(emp)
+	result, err := sqlAddEmp(emp)
 	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"isAdded": id})
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
 		return
 	}
-	context.IndentedJSON(http.StatusCreated, gin.H{"isAdded": id})
+	context.IndentedJSON(http.StatusCreated, gin.H{"rows_affected": result})
+}
+
+// full entry update done by id
+func updateEmployee(context *gin.Context) {
+	id := context.Params.ByName("id")
+	currEmployee, err := sqlGetEmployeeById(id)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
+		return
+	}
+	if err := context.BindJSON(&currEmployee); err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	result, err := sqlUpdateEmployee(currEmployee)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
+}
+
+func sqlUpdateEmployee(emp Employee) (int64, error) {
+	result, err := db.Exec(
+		"UPDATE Employees SET name=?, lastname=?, focus_area=?, email=? WHERE employee_id = ?",
+		emp.Name, emp.Lastname, emp.FocusArea, emp.Email, emp.EmployeeId)
+	if err != nil {
+		return -1, err
+	}
+	return result.RowsAffected()
 }
 
 func sqlAddEmp(emp Employee) (int, error) {
@@ -282,6 +322,20 @@ func sqlGetAllEmployees() ([]Employee, error) {
 	return employees, nil
 }
 
+func sqlGetEmployeeById(strId string) (Employee, error) {
+	var emp Employee
+
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		return Employee{}, err
+	}
+	row := db.QueryRow("SELECT * FROM Employees WHERE employee_id = ?", id)
+	if err := row.Scan(&emp.EmployeeId, &emp.Name, &emp.Lastname, &emp.FocusArea, &emp.Email); err != nil {
+		return Employee{}, err
+	}
+	return emp, nil
+}
+
 var db *sql.DB
 
 func main() {
@@ -310,11 +364,14 @@ func main() {
 	//Configure endpoints
 	router := gin.Default()
 	router.GET("/employees", getEmployees)
+	router.GET("/employees/:id", getEmployee)
 	router.GET("/fullEmployees", getFullEmployees)
 	router.GET("/projects", getProjects)
 	router.GET("/clients", getClients)
 	router.GET("/skills", getSkills)
+	//TODO GET Employee, Skill, Project, Client by id
 	router.POST("/employees", addEmployee)
+	router.PUT("/employees/:id", updateEmployee)
 	router.Run("localhost:9090")
 
 }
