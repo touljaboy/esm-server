@@ -57,7 +57,7 @@ type EmployeeFull struct {
 // TODO this code also begins to get pretty repetitive, maybe there is a way to generalize the functions?
 // TODO - implement a nice project structure
 // TODO need way better error messages to get sent, because this fucking sucks dude, no logs, no anything to debug
-// TODO: updating, deleting an Employee
+// TODO: deleting an Employee
 // TODO adding, updating, deleting a Skill
 // TODO adding, updating, deleting a Skill to an Employee
 // TODO adding, updating, deleting a Client
@@ -150,6 +150,27 @@ func updateEmployee(context *gin.Context) {
 		return
 	}
 	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
+}
+
+func deleteEmployee(context *gin.Context) {
+	id := context.Params.ByName("id")
+	result, err := sqlDeleteEmployee(id)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
+	}
+	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
+}
+
+func sqlDeleteEmployee(strId string) (int64, error) {
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		return -1, err
+	}
+	result, err := db.Exec("DELETE FROM Employees WHERE employee_id=?", id)
+	if err != nil {
+		return -1, err
+	}
+	return result.RowsAffected()
 }
 
 func sqlUpdateEmployee(emp Employee) (int64, error) {
@@ -369,9 +390,10 @@ func main() {
 	router.GET("/projects", getProjects)
 	router.GET("/clients", getClients)
 	router.GET("/skills", getSkills)
-	//TODO GET Employee, Skill, Project, Client by id
+	//TODO GET Skill, Project, Client by id
 	router.POST("/employees", addEmployee)
 	router.PUT("/employees/:id", updateEmployee)
+	router.DELETE("/employees/:id", deleteEmployee)
 	router.Run("localhost:9090")
 
 }
