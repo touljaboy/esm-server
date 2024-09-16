@@ -53,8 +53,14 @@ type EmployeeFull struct {
 }
 
 // TODO this code also begins to get pretty repetitive, maybe there is a way to generalize the functions?
-
+// TODO - implement a nice project structure
 // TODO need way better error messages to get sent, because this fucking sucks dude, no logs, no anything to debug
+// TODO: adding, updating, deleting an Employee
+// TODO adding, updating, deleting a Skill
+// TODO adding, updating, deleting a Skill to an Employee
+// TODO adding, updating, deleting a Client
+// TODO adding, updating, deleting a Project
+// TODO adding, updating, deleting an Employee to a Project
 func getEmployees(context *gin.Context) {
 	employees, err := sqlGetAllEmployees()
 	if err != nil {
@@ -89,6 +95,39 @@ func getFullEmployees(context *gin.Context) {
 		return
 	}
 	context.IndentedJSON(http.StatusOK, fullEmployees)
+}
+
+func getSkills(context *gin.Context) {
+	skills, err := sqlGetSkills()
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, skills)
+}
+
+// We use Skill struct which also contains skill level, as it is usually associated with an Employee.
+// In this case however, we only want to see what Skills are available in database, thus skill level is nil
+func sqlGetSkills() ([]Skill, error) {
+	var skills []Skill
+
+	rows, err := db.Query("SELECT skill_class, skill FROM Skills")
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var skill Skill
+
+		if err := rows.Scan(&skill.SkillClass, &skill.Skill); err != nil {
+			return nil, err
+		}
+
+		skills = append(skills, skill)
+	}
+	return skills, nil
 }
 
 func sqlGetFullEmployees() ([]EmployeeFull, error) {
@@ -244,6 +283,7 @@ func main() {
 	router.GET("/fullEmployees", getFullEmployees)
 	router.GET("/projects", getProjects)
 	router.GET("/clients", getClients)
+	router.GET("/skills", getSkills)
 	router.Run("localhost:9090")
 
 }
