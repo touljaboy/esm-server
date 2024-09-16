@@ -15,6 +15,7 @@ import (
 //For now, I assume that struct EmployeeFull will be the "highest in hierarchy"
 
 type Skill struct {
+	SkillId    int    `json:"skill_id"`
 	SkillClass string `json:"skill_class"`
 	Skill      string `json:"skill"`
 	SkillLevel int    `json:"skill_level"`
@@ -73,7 +74,12 @@ func getEmployees(context *gin.Context) {
 }
 
 func getEmployee(context *gin.Context) {
-	employee, err := sqlGetEmployeeById(context.Param("id"))
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	employee, err := sqlGetEmployeeById(id)
 	if err != nil {
 		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
 		return
@@ -90,6 +96,20 @@ func getProjects(context *gin.Context) {
 	context.IndentedJSON(http.StatusOK, projects)
 }
 
+func getProject(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	project, err := sqlGetProject(id)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, project)
+}
+
 func getClients(context *gin.Context) {
 	clients, err := sqlGetAllClients()
 	if err != nil {
@@ -97,6 +117,20 @@ func getClients(context *gin.Context) {
 		return
 	}
 	context.IndentedJSON(http.StatusOK, clients)
+}
+
+func getClient(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	client, err := sqlGetClient(id)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, client)
 }
 
 func getFullEmployees(context *gin.Context) {
@@ -108,6 +142,20 @@ func getFullEmployees(context *gin.Context) {
 	context.IndentedJSON(http.StatusOK, fullEmployees)
 }
 
+func getFullEmployee(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	fullEmployee, err := sqlGetFullEmployeeById(id)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, fullEmployee)
+}
+
 func getSkills(context *gin.Context) {
 	skills, err := sqlGetSkills()
 	if err != nil {
@@ -115,6 +163,21 @@ func getSkills(context *gin.Context) {
 		return
 	}
 	context.IndentedJSON(http.StatusOK, skills)
+}
+
+func getSkill(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	skill, err := sqlGetSkill(id)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, skill)
 }
 
 func addEmployee(context *gin.Context) {
@@ -134,7 +197,11 @@ func addEmployee(context *gin.Context) {
 
 // full entry update done by id
 func updateEmployee(context *gin.Context) {
-	id := context.Params.ByName("id")
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
 	currEmployee, err := sqlGetEmployeeById(id)
 	if err != nil {
 		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
@@ -221,6 +288,15 @@ func sqlGetSkills() ([]Skill, error) {
 	return skills, nil
 }
 
+func sqlGetSkill(id int64) (Skill, error) {
+	var skill Skill
+	row := db.QueryRow("SELECT * FROM Skills WHERE skill_id=?", id)
+	if err := row.Scan(&skill.SkillId, &skill.SkillClass, &skill.Skill); err != nil {
+		return Skill{}, err
+	}
+	return skill, nil
+}
+
 func sqlGetFullEmployees() ([]EmployeeFull, error) {
 	var employeesFull []EmployeeFull
 
@@ -232,48 +308,61 @@ func sqlGetFullEmployees() ([]EmployeeFull, error) {
 
 	//iterate through each employee and find associated projects and skills. Then append employeesFull
 	for _, employee := range employees {
-		var employeeFull EmployeeFull
-		var skills []Skill
-		var projects []ProjectFull
-
-		//find associated skills
-		rows, err := db.Query("SELECT s.skill_class, s.skill, e.skill_level FROM EmployeeSkills AS e "+
-			"INNER JOIN Skills AS s ON e.skill_id = s.skill_id WHERE employee_id = ?", employee.EmployeeId)
+		employeeFull, err := sqlGetFullEmployeeById(employee.EmployeeId)
 		if err != nil {
-			return nil, fmt.Errorf("sqlGetFullEmployees: %v", err)
+			return nil, fmt.Errorf("sqlGetFullEmployeeById: %v", err)
 		}
-		for rows.Next() {
-			var skill Skill
-			if err := rows.Scan(&skill.SkillClass, &skill.Skill, &skill.SkillLevel); err != nil {
-				return nil, fmt.Errorf("sqlGetFullEmployees: %v", err)
-			}
-			skills = append(skills, skill)
-		}
-
-		//find associate projects
-		rows, err = db.Query("SELECT a.*, b.employee_role FROM Projects AS a "+
-			"INNER JOIN ProjectDetails as b  ON a.project_id = b.project_id WHERE employee_id = ?", employee.EmployeeId)
-		if err != nil {
-			return nil, fmt.Errorf("sqlGetFullEmployees: %v", err)
-		}
-		for rows.Next() {
-			var projectFull ProjectFull
-
-			if err := rows.Scan(&projectFull.Project.ProjectId,
-				&projectFull.Project.ClientId, &projectFull.Project.FocusArea,
-				&projectFull.Project.Description, &projectFull.Project.IsSecret, &projectFull.EmployeeRole); err != nil {
-				return nil, fmt.Errorf("sqlGetFullEmployees: %v", err)
-			}
-			projects = append(projects, projectFull)
-		}
-		employeeFull.Employee = employee
-		employeeFull.Skills = skills
-		employeeFull.Projects = projects
-
 		employeesFull = append(employeesFull, employeeFull)
 	}
 
 	return employeesFull, nil
+}
+
+func sqlGetFullEmployeeById(id int64) (EmployeeFull, error) {
+	employee, err := sqlGetEmployeeById(id)
+	if err != nil {
+		return EmployeeFull{}, err
+	}
+
+	var employeeFull EmployeeFull
+	var skills []Skill
+	var projects []ProjectFull
+
+	//find associated skills
+	rows, err := db.Query("SELECT s.skill_class, s.skill, e.skill_level FROM EmployeeSkills AS e "+
+		"INNER JOIN Skills AS s ON e.skill_id = s.skill_id WHERE employee_id = ?", employee.EmployeeId)
+	if err != nil {
+		return EmployeeFull{}, fmt.Errorf("sqlGetFullEmployees: %v", err)
+	}
+	for rows.Next() {
+		var skill Skill
+		if err := rows.Scan(&skill.SkillClass, &skill.Skill, &skill.SkillLevel); err != nil {
+			return EmployeeFull{}, fmt.Errorf("sqlGetFullEmployees: %v", err)
+		}
+		skills = append(skills, skill)
+	}
+
+	//find associate projects
+	rows, err = db.Query("SELECT a.*, b.employee_role FROM Projects AS a "+
+		"INNER JOIN ProjectDetails as b  ON a.project_id = b.project_id WHERE employee_id = ?", employee.EmployeeId)
+	if err != nil {
+		return EmployeeFull{}, fmt.Errorf("sqlGetFullEmployees: %v", err)
+	}
+	for rows.Next() {
+		var projectFull ProjectFull
+
+		if err := rows.Scan(&projectFull.Project.ProjectId,
+			&projectFull.Project.ClientId, &projectFull.Project.FocusArea,
+			&projectFull.Project.Description, &projectFull.Project.IsSecret, &projectFull.EmployeeRole); err != nil {
+			return EmployeeFull{}, fmt.Errorf("sqlGetFullEmployees: %v", err)
+		}
+		projects = append(projects, projectFull)
+	}
+	employeeFull.Employee = employee
+	employeeFull.Skills = skills
+	employeeFull.Projects = projects
+
+	return employeeFull, nil
 }
 
 // TODO the following code seems very similar. Try and find a way to generalize such code
@@ -299,6 +388,16 @@ func sqlGetAllProjects() ([]Project, error) {
 	return projects, nil
 }
 
+func sqlGetProject(id int64) (Project, error) {
+	var proj Project
+
+	row := db.QueryRow("SELECT * FROM Projects WHERE project_id = ?", id)
+	if err := row.Scan(&proj.ProjectId, &proj.ClientId, &proj.FocusArea, &proj.Description, &proj.IsSecret); err != nil {
+		return Project{}, err
+	}
+	return proj, nil
+}
+
 func sqlGetAllClients() ([]Client, error) {
 	var clients []Client
 
@@ -319,6 +418,15 @@ func sqlGetAllClients() ([]Client, error) {
 		return nil, fmt.Errorf("sqlGetAllClients: %v", err)
 	}
 	return clients, nil
+}
+
+func sqlGetClient(id int64) (Client, error) {
+	var client Client
+	row := db.QueryRow("SELECT * FROM Clients WHERE id = ?", id)
+	if err := row.Scan(&client.ID, &client.Name, &client.Description); err != nil {
+		return Client{}, err
+	}
+	return client, nil
 }
 
 func sqlGetAllEmployees() ([]Employee, error) {
@@ -343,13 +451,9 @@ func sqlGetAllEmployees() ([]Employee, error) {
 	return employees, nil
 }
 
-func sqlGetEmployeeById(strId string) (Employee, error) {
+func sqlGetEmployeeById(id int64) (Employee, error) {
 	var emp Employee
 
-	id, err := strconv.ParseInt(strId, 10, 64)
-	if err != nil {
-		return Employee{}, err
-	}
 	row := db.QueryRow("SELECT * FROM Employees WHERE employee_id = ?", id)
 	if err := row.Scan(&emp.EmployeeId, &emp.Name, &emp.Lastname, &emp.FocusArea, &emp.Email); err != nil {
 		return Employee{}, err
@@ -387,10 +491,13 @@ func main() {
 	router.GET("/employees", getEmployees)
 	router.GET("/employees/:id", getEmployee)
 	router.GET("/fullEmployees", getFullEmployees)
+	router.GET("fullEmployees/:id", getFullEmployee)
 	router.GET("/projects", getProjects)
+	router.GET("/projects/:id", getProject)
 	router.GET("/clients", getClients)
+	router.GET("/clients/:id", getClient)
 	router.GET("/skills", getSkills)
-	//TODO GET Skill, Project, Client by id
+	router.GET("/skills/:id", getSkill)
 	router.POST("/employees", addEmployee)
 	router.PUT("/employees/:id", updateEmployee)
 	router.DELETE("/employees/:id", deleteEmployee)
