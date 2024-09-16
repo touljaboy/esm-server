@@ -44,6 +44,7 @@ type Employee struct {
 	Name       string `json:"name"`
 	Lastname   string `json:"lastname"`
 	FocusArea  string `json:"focus_area"`
+	Email      string `json:"email"`
 }
 
 type EmployeeFull struct {
@@ -55,7 +56,7 @@ type EmployeeFull struct {
 // TODO this code also begins to get pretty repetitive, maybe there is a way to generalize the functions?
 // TODO - implement a nice project structure
 // TODO need way better error messages to get sent, because this fucking sucks dude, no logs, no anything to debug
-// TODO: adding, updating, deleting an Employee
+// TODO: updating, deleting an Employee
 // TODO adding, updating, deleting a Skill
 // TODO adding, updating, deleting a Skill to an Employee
 // TODO adding, updating, deleting a Client
@@ -104,6 +105,35 @@ func getSkills(context *gin.Context) {
 		return
 	}
 	context.IndentedJSON(http.StatusOK, skills)
+}
+
+func addEmployee(context *gin.Context) {
+	var emp Employee
+	if err := context.BindJSON(&emp); err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	id, err := sqlAddEmp(emp)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"isAdded": id})
+		return
+	}
+	context.IndentedJSON(http.StatusCreated, gin.H{"isAdded": id})
+}
+
+func sqlAddEmp(emp Employee) (int, error) {
+	result, err := db.Exec(
+		"INSERT INTO Employees (employee_id, name, lastname, focus_area, email) VALUES (?,?,?,?,?)",
+		emp.EmployeeId, emp.Name, emp.Lastname, emp.FocusArea, emp.Email)
+	if err != nil {
+		return -1, err
+	}
+	id, err := result.RowsAffected()
+	if err != nil {
+		return -1, err
+	}
+	return int(id), nil
 }
 
 // We use Skill struct which also contains skill level, as it is usually associated with an Employee.
@@ -241,7 +271,7 @@ func sqlGetAllEmployees() ([]Employee, error) {
 
 	for rows.Next() {
 		var emp Employee
-		if err := rows.Scan(&emp.EmployeeId, &emp.Name, &emp.Lastname, &emp.FocusArea); err != nil {
+		if err := rows.Scan(&emp.EmployeeId, &emp.Name, &emp.Lastname, &emp.FocusArea, &emp.Email); err != nil {
 			return nil, fmt.Errorf("sqlGetAllEmployees %v", err)
 		}
 		employees = append(employees, emp)
@@ -284,6 +314,7 @@ func main() {
 	router.GET("/projects", getProjects)
 	router.GET("/clients", getClients)
 	router.GET("/skills", getSkills)
+	router.POST("/employees", addEmployee)
 	router.Run("localhost:9090")
 
 }

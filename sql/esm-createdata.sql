@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS Projects;
 DROP TABLE IF EXISTS Clients; 
 DROP TABLE IF EXISTS EmployeeSkills;
 DROP TABLE IF EXISTS Employees;
+DROP TABLE IF EXISTS Skills;
 -- Create Clients Table
 CREATE TABLE Clients (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -24,10 +25,11 @@ CREATE TABLE Projects (
 
 -- Create Employees Table with projectID reference
 CREATE TABLE Employees (
-    employee_id INT AUTO_INCREMENT PRIMARY KEY, -- Employee ID (multiple rows per employee)
+    employee_id INT PRIMARY KEY, -- Employee ID (multiple rows per employee), PRIMARY KEY
     name VARCHAR(255) NOT NULL,                -- First name of the employee
     lastname VARCHAR(255) NOT NULL,            -- Last name of the employee
-    focus_area VARCHAR(255)                   -- The focus area of the employee
+    focus_area VARCHAR(255),                   -- The focus area of the employee
+    email VARCHAR(255)			   			   -- employee email
 );
 
 CREATE TABLE ProjectDetails (
@@ -72,12 +74,12 @@ INSERT INTO Projects (client_id, focus_area, description, isSecret) VALUES
 (4, 'Cloud Computing', 'Building cloud infrastructure and services.', FALSE),
 (5, 'Quantum Computing', 'Exploring the future of quantum computing.', TRUE);
 
-INSERT INTO Employees (name, lastname, focus_area) VALUES
-('John', 'Doe', 'Software Engineering'),
-('Jane', 'Smith', 'Data Science'),
-('Robert', 'Johnson', 'Cybersecurity'),
-('Emily', 'Davis', 'Blockchain Development'),
-('Michael', 'Brown', 'Cloud Infrastructure');
+INSERT INTO Employees (employee_id,name, lastname, focus_area, email) VALUES
+(1,'John', 'Doe', 'Software Engineering',"john.doe@company.co"),
+(2,'Jane', 'Smith', 'Data Science',"jane.smith@company.co"),
+(3,'Robert', 'Johnson', 'Cybersecurity',"robert.johnson@company.co"),
+(4,'Emily', 'Davis', 'Blockchain Development',"emily.davis@company.co"),
+(5,'Michael', 'Brown', 'Cloud Infrastructure',"michael.brown@company.co");
 
 INSERT INTO Skills (skill_id, skill_class, skill) VALUES
 (1, 'Programming Languages', 'Python'),
