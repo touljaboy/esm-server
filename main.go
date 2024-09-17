@@ -12,7 +12,7 @@ import (
 )
 
 //Define structs to be used for representing the db data
-//For now, I assume that struct EmployeeFull will be the "highest in hierarchy"
+//For now, I assume that struct EmployeeFull will be the "highest in hierarchy", combining all data
 
 type Skill struct {
 	SkillId    int    `json:"skill_id"`
@@ -58,11 +58,10 @@ type EmployeeFull struct {
 // TODO this code also begins to get pretty repetitive, maybe there is a way to generalize the functions?
 // TODO - implement a nice project structure
 // TODO need way better error messages to get sent, because this fucking sucks dude, no logs, no anything to debug
-// TODO: deleting an Employee
 // TODO adding, updating, deleting a Skill
-// TODO adding, updating, deleting a Skill to an Employee
 // TODO adding, updating, deleting a Client
 // TODO adding, updating, deleting a Project
+// TODO adding, updating, deleting a Skill to an Employee
 // TODO adding, updating, deleting an Employee to a Project
 func getEmployees(context *gin.Context) {
 	employees, err := sqlGetAllEmployees()
@@ -195,6 +194,21 @@ func addEmployee(context *gin.Context) {
 	context.IndentedJSON(http.StatusCreated, gin.H{"rows_affected": result})
 }
 
+func addSkill(context *gin.Context) {
+	var skill Skill
+	if err := context.BindJSON(&skill); err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	result, err := sqlAddSkill(skill)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
+		return
+	}
+	context.IndentedJSON(http.StatusCreated, gin.H{"rows_affected": result})
+}
+
 // full entry update done by id
 func updateEmployee(context *gin.Context) {
 	strId := context.Params.ByName("id")
@@ -219,7 +233,39 @@ func updateEmployee(context *gin.Context) {
 	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
 }
 
+func updateSkill(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	currEmployee, err := sqlGetEmployeeById(id)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
+		return
+	}
+	if err := context.BindJSON(&currEmployee); err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	result, err := sqlUpdateEmployee(currEmployee)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
+}
+
 func deleteEmployee(context *gin.Context) {
+	id := context.Params.ByName("id")
+	result, err := sqlDeleteEmployee(id)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
+	}
+	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
+}
+
+func deleteSkill(context *gin.Context) {
 	id := context.Params.ByName("id")
 	result, err := sqlDeleteEmployee(id)
 	if err != nil {
@@ -286,6 +332,20 @@ func sqlGetSkills() ([]Skill, error) {
 		skills = append(skills, skill)
 	}
 	return skills, nil
+}
+
+func sqlAddSkill(skill Skill) (int, error) {
+	result, err := db.Exec(
+		"INSERT INTO Skills (skill_id, skill_class, skill) VALUES (?,?,?)",
+		skill.SkillId, skill.SkillClass, skill.Skill)
+	if err != nil {
+		return -1, err
+	}
+	id, err := result.RowsAffected()
+	if err != nil {
+		return -1, err
+	}
+	return int(id), nil
 }
 
 func sqlGetSkill(id int64) (Skill, error) {
@@ -490,17 +550,23 @@ func main() {
 	router := gin.Default()
 	router.GET("/employees", getEmployees)
 	router.GET("/employees/:id", getEmployee)
-	router.GET("/fullEmployees", getFullEmployees)
-	router.GET("fullEmployees/:id", getFullEmployee)
-	router.GET("/projects", getProjects)
-	router.GET("/projects/:id", getProject)
-	router.GET("/clients", getClients)
-	router.GET("/clients/:id", getClient)
-	router.GET("/skills", getSkills)
-	router.GET("/skills/:id", getSkill)
 	router.POST("/employees", addEmployee)
 	router.PUT("/employees/:id", updateEmployee)
 	router.DELETE("/employees/:id", deleteEmployee)
+
+	router.GET("/fullEmployees", getFullEmployees)
+	router.GET("fullEmployees/:id", getFullEmployee)
+
+	router.GET("/projects", getProjects)
+	router.GET("/projects/:id", getProject)
+
+	router.GET("/clients", getClients)
+	router.GET("/clients/:id", getClient)
+
+	router.GET("/skills", getSkills)
+	router.GET("/skills/:id", getSkill)
+	router.POST("/skills", addSkill)
+
 	router.Run("localhost:9090")
 
 }
