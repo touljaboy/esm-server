@@ -55,6 +55,9 @@ type EmployeeFull struct {
 	Projects []ProjectFull `json:"projects"`
 }
 
+// TODO ids should probably be a uint
+// TODO version your API, for now it's v1
+// TODO write some tests
 // TODO this code also begins to get pretty repetitive, maybe there is a way to generalize the functions?
 // TODO - implement a nice project structure
 // TODO need way better error messages to get sent, because this fucking sucks dude, no logs, no anything to debug
@@ -63,6 +66,7 @@ type EmployeeFull struct {
 // TODO adding, updating, deleting a Project
 // TODO adding, updating, deleting a Skill to an Employee
 // TODO adding, updating, deleting an Employee to a Project
+
 func getEmployees(context *gin.Context) {
 	employees, err := sqlGetAllEmployees()
 	if err != nil {
@@ -267,11 +271,23 @@ func deleteEmployee(context *gin.Context) {
 
 func deleteSkill(context *gin.Context) {
 	id := context.Params.ByName("id")
-	result, err := sqlDeleteEmployee(id)
+	result, err := sqlDeleteSkill(id)
 	if err != nil {
 		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
 	}
 	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
+}
+
+func sqlDeleteSkill(strId string) (int64, error) {
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		return -1, err
+	}
+	result, err := db.Exec("DELETE FROM Skills WHERE skill_id=?", id)
+	if err != nil {
+		return -1, err
+	}
+	return result.RowsAffected()
 }
 
 func sqlDeleteEmployee(strId string) (int64, error) {
@@ -521,9 +537,7 @@ func sqlGetEmployeeById(id int64) (Employee, error) {
 	return emp, nil
 }
 
-var db *sql.DB
-
-func main() {
+func initDB() {
 	// Capture connection properties.
 	cfg := mysql.Config{
 		User:                 os.Getenv("DBUSER"),
@@ -545,6 +559,12 @@ func main() {
 		log.Fatal(pingErr)
 	}
 	fmt.Println("Connected!")
+}
+
+var db *sql.DB
+
+func main() {
+	initDB()
 
 	//Configure endpoints
 	router := gin.Default()
@@ -566,6 +586,7 @@ func main() {
 	router.GET("/skills", getSkills)
 	router.GET("/skills/:id", getSkill)
 	router.POST("/skills", addSkill)
+	router.DELETE("/skills/:id", deleteSkill)
 
 	router.Run("localhost:9090")
 
