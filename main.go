@@ -568,25 +568,25 @@ func main() {
 
 	//Configure endpoints
 	router := gin.Default()
-	router.GET("/employees", getEmployees)
-	router.GET("/employees/:id", getEmployee)
-	router.POST("/employees", addEmployee)
-	router.PUT("/employees/:id", updateEmployee)
-	router.DELETE("/employees/:id", deleteEmployee)
+	router.GET("/v1/employees", getEmployees)
+	router.GET("/v1/employees/:id", getEmployee)
+	router.POST("/v1/employees", addEmployee)
+	router.PUT("/v1/employees/:id", updateEmployee)
+	router.DELETE("/v1/employees/:id", deleteEmployee)
 
-	router.GET("/fullEmployees", getFullEmployees)
-	router.GET("fullEmployees/:id", getFullEmployee)
+	router.GET("/v1/fullEmployees", getFullEmployees)
+	router.GET("/v1/fullEmployees/:id", getFullEmployee)
 
-	router.GET("/projects", getProjects)
-	router.GET("/projects/:id", getProject)
+	router.GET("/v1/projects", getProjects)
+	router.GET("/v1/projects/:id", getProject)
 
-	router.GET("/clients", getClients)
-	router.GET("/clients/:id", getClient)
+	router.GET("/v1/clients", getClients)
+	router.GET("/v1/clients/:id", getClient)
 
-	router.GET("/skills", getSkills)
-	router.GET("/skills/:id", getSkill)
-	router.POST("/skills", addSkill)
-	router.DELETE("/skills/:id", deleteSkill)
+	router.GET("/v1/skills", getSkills)
+	router.GET("/v1/skills/:id", getSkill)
+	router.POST("/v1/skills", addSkill)
+	router.DELETE("/v1/skills/:id", deleteSkill)
 
 	router.Run("localhost:9090")
 
