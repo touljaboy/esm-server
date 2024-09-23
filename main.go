@@ -56,8 +56,6 @@ type EmployeeFull struct {
 }
 
 // TODO ids should probably be a uint
-// TODO version your API, for now it's v1
-// TODO write some tests
 // TODO this code also begins to get pretty repetitive, maybe there is a way to generalize the functions?
 // TODO - implement a nice project structure
 // TODO need way better error messages to get sent, because this fucking sucks dude, no logs, no anything to debug
@@ -243,16 +241,16 @@ func updateSkill(context *gin.Context) {
 	if err != nil {
 		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
-	currEmployee, err := sqlGetEmployeeById(id)
+	currSkill, err := sqlGetSkill(id)
 	if err != nil {
 		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
 		return
 	}
-	if err := context.BindJSON(&currEmployee); err != nil {
+	if err := context.BindJSON(&currSkill); err != nil {
 		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
-	result, err := sqlUpdateEmployee(currEmployee)
+	result, err := sqlUpdateSkill(currSkill)
 	if err != nil {
 		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
 		return
@@ -284,6 +282,16 @@ func sqlDeleteSkill(strId string) (int64, error) {
 		return -1, err
 	}
 	result, err := db.Exec("DELETE FROM Skills WHERE skill_id=?", id)
+	if err != nil {
+		return -1, err
+	}
+	return result.RowsAffected()
+}
+
+func sqlUpdateSkill(skill Skill) (int64, error) {
+	result, err := db.Exec(
+		"UPDATE Skills SET skill_id=?, skill_class=?, skill=? WHERE skill_id = ?",
+		skill.SkillId, skill.SkillClass, skill.Skill, skill.SkillId)
 	if err != nil {
 		return -1, err
 	}
@@ -331,7 +339,7 @@ func sqlAddEmp(emp Employee) (int, error) {
 func sqlGetSkills() ([]Skill, error) {
 	var skills []Skill
 
-	rows, err := db.Query("SELECT skill_class, skill FROM Skills")
+	rows, err := db.Query("SELECT skill_id, skill_class, skill FROM Skills")
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +349,7 @@ func sqlGetSkills() ([]Skill, error) {
 	for rows.Next() {
 		var skill Skill
 
-		if err := rows.Scan(&skill.SkillClass, &skill.Skill); err != nil {
+		if err := rows.Scan(&skill.SkillId, &skill.SkillClass, &skill.Skill); err != nil {
 			return nil, err
 		}
 
@@ -586,6 +594,7 @@ func main() {
 	router.GET("/v1/skills", getSkills)
 	router.GET("/v1/skills/:id", getSkill)
 	router.POST("/v1/skills", addSkill)
+	router.PUT("/v1/skills/:id", updateSkill)
 	router.DELETE("/v1/skills/:id", deleteSkill)
 
 	router.Run("localhost:9090")

@@ -218,6 +218,19 @@ func TestCRUDSkill(t *testing.T) {
 	//test that status is OK
 	assert.Equal(t, http.StatusOK, w.Code)
 
+	// PUT /skills/:id TEST
+	eng.PUT("/skills/:id", updateSkill)
+	skill.Skill = "Mandarin"
+	jsonData, err = json.Marshal(skill)
+	if err != nil {
+		t.Error(err)
+	}
+	req, err = http.NewRequest("PUT", "/skills/0", bytes.NewBuffer(jsonData))
+	w = httptest.NewRecorder()
+	eng.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, mockResponse, w.Body.String())
+
 	// DELETE /skills/:id TEST
 	eng.DELETE("/skills/:id", deleteSkill)
 	req, _ = http.NewRequest("DELETE", "/skills/0", nil)
@@ -226,5 +239,4 @@ func TestCRUDSkill(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, mockResponse, w.Body.String())
 
-	//TODO add update test
 }
