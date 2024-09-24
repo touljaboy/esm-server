@@ -395,14 +395,14 @@ func (s *MySQLEmployeeStore) GetFull(id int64) (instances.EmployeeFull, error) {
 	var projects []instances.ProjectFull
 
 	//find associated skills
-	rows, err := s.db.Query("SELECT s.skill_class, s.skill, e.skill_level FROM EmployeeSkills AS e "+
+	rows, err := s.db.Query("SELECT s.skill_id,s.skill_class, s.skill, e.skill_level FROM EmployeeSkills AS e "+
 		"INNER JOIN Skills AS s ON e.skill_id = s.skill_id WHERE employee_id = ?", employee.EmployeeId)
 	if err != nil {
 		return instances.EmployeeFull{}, fmt.Errorf("sqlGetFullEmployees: %v", err)
 	}
 	for rows.Next() {
 		var skill instances.Skill
-		if err := rows.Scan(&skill.SkillClass, &skill.Skill, &skill.SkillLevel); err != nil {
+		if err := rows.Scan(&skill.SkillId, &skill.SkillClass, &skill.Skill, &skill.SkillLevel); err != nil {
 			return instances.EmployeeFull{}, fmt.Errorf("sqlGetFullEmployees: %v", err)
 		}
 		skills = append(skills, skill)

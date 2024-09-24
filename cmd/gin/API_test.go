@@ -14,6 +14,8 @@ import (
 	"testing"
 )
 
+//TODO add tests where errors are expected
+
 //Testing each endpoint (testing handlers seems to be more logical and convenient way to go)
 
 func SetUpRouter() *gin.Engine {
