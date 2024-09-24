@@ -21,29 +21,6 @@ import (
 // TODO adding, updating, deleting a Skill to an Employee
 // TODO adding, updating, deleting an Employee to a Project
 
-func getClients(context *gin.Context) {
-	clients, err := sqlGetAllClients()
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
-		return
-	}
-	context.IndentedJSON(http.StatusOK, clients)
-}
-
-func getClient(context *gin.Context) {
-	strId := context.Params.ByName("id")
-	id, err := strconv.ParseInt(strId, 10, 64)
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	}
-	client, err := sqlGetClient(id)
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
-		return
-	}
-	context.IndentedJSON(http.StatusOK, client)
-}
-
 func getFullEmployees(context *gin.Context) {
 	fullEmployees, err := sqlGetFullEmployees()
 	if err != nil {
@@ -135,37 +112,6 @@ func sqlGetFullEmployeeById(id int64) (instances.EmployeeFull, error) {
 }
 
 // TODO the following code seems very similar. Try and find a way to generalize such code
-
-func sqlGetAllClients() ([]instances.Client, error) {
-	var clients []instances.Client
-
-	rows, err := db.Query("SELECT * FROM Clients")
-	if err != nil {
-		return nil, fmt.Errorf("sqlGetAllClients: %v", err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var client instances.Client
-		if err := rows.Scan(&client.ID, &client.Name, &client.Description); err != nil {
-			return nil, fmt.Errorf("sqlGetAllClients: %v", err)
-		}
-		clients = append(clients, client)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("sqlGetAllClients: %v", err)
-	}
-	return clients, nil
-}
-
-func sqlGetClient(id int64) (instances.Client, error) {
-	var client instances.Client
-	row := db.QueryRow("SELECT * FROM Clients WHERE id = ?", id)
-	if err := row.Scan(&client.ID, &client.Name, &client.Description); err != nil {
-		return instances.Client{}, err
-	}
-	return client, nil
-}
 
 func main() {
 	// Capture connection properties.

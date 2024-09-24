@@ -1,5 +1,6 @@
 package main
 
+//TODO maybe there is a way to at least make the constructor generic?
 import (
 	"database/sql"
 	"esmAPI/pkg/instances"
@@ -27,10 +28,18 @@ type skillStore interface {
 
 type projectStore interface {
 	Add(proj instances.Project) (int, error)
-	Get(projId int64) (emp instances.Project, err error)
+	Get(projId int64) (proj instances.Project, err error)
 	List() ([]instances.Project, error)
 	Update(proj instances.Project) (int64, error)
 	Delete(projId int64) (int64, error)
+}
+
+type clientStore interface {
+	Add(client instances.Client) (int, error)
+	Get(clientId int64) (client instances.Client, err error)
+	List() ([]instances.Client, error)
+	Update(client instances.Client) (int64, error)
+	Delete(clientId int64) (int64, error)
 }
 
 type MySQLEmployeeStore struct {
@@ -263,6 +272,70 @@ func (s *MySQLProjectStore) Update(proj instances.Project) (int64, error) {
 	return 0, nil
 }
 func (s *MySQLProjectStore) Delete(projId int64) (int64, error) {
+	//TODO
+	return 0, nil
+}
+
+type MySQLClientStore struct {
+	db *sql.DB
+}
+
+func NewClientStore(cfg mysql.Config) (*MySQLClientStore, error) {
+	// Get a database handle.
+	db, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pingErr := db.Ping()
+	if pingErr != nil {
+		log.Fatal(pingErr)
+	}
+	fmt.Println("Connected!")
+	return &MySQLClientStore{db: db}, nil
+}
+
+func (s *MySQLClientStore) List() ([]instances.Client, error) {
+	var clients []instances.Client
+
+	rows, err := s.db.Query("SELECT * FROM Clients")
+	if err != nil {
+		return nil, fmt.Errorf("sqlGetAllClients: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var client instances.Client
+		if err := rows.Scan(&client.ID, &client.Name, &client.Description); err != nil {
+			return nil, fmt.Errorf("sqlGetAllClients: %v", err)
+		}
+		clients = append(clients, client)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("sqlGetAllClients: %v", err)
+	}
+	return clients, nil
+}
+
+func (s *MySQLClientStore) Get(id int64) (instances.Client, error) {
+	var client instances.Client
+	row := s.db.QueryRow("SELECT * FROM Clients WHERE id = ?", id)
+	if err := row.Scan(&client.ID, &client.Name, &client.Description); err != nil {
+		return instances.Client{}, err
+	}
+	return client, nil
+}
+
+func (s *MySQLClientStore) Add(client instances.Client) (int, error) {
+	//TODO
+	return 0, nil
+}
+
+func (s *MySQLClientStore) Update(client instances.Client) (int64, error) {
+	//TODO
+	return 0, nil
+}
+func (s *MySQLClientStore) Delete(clientId int64) (int64, error) {
 	//TODO
 	return 0, nil
 }

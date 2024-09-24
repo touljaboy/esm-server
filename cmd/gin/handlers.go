@@ -19,6 +19,10 @@ type ProjectHandler struct {
 	store projectStore
 }
 
+type ClientHandler struct {
+	store clientStore
+}
+
 // NewEmployeeHandler - constructor
 func NewEmployeeHandler(store employeeStore) *EmployeeHandler {
 	return &EmployeeHandler{
@@ -211,4 +215,34 @@ func (h ProjectHandler) getProject(context *gin.Context) {
 		return
 	}
 	context.IndentedJSON(http.StatusOK, project)
+}
+
+// NewClientHandler - constructor
+func NewClientHandler(store clientStore) *ClientHandler {
+	return &ClientHandler{
+		store: store,
+	}
+}
+
+func (h ClientHandler) getClients(context *gin.Context) {
+	clients, err := h.store.List()
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, clients)
+}
+
+func (h ClientHandler) getClient(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	client, err := h.store.Get(id)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, client)
 }
