@@ -15,6 +15,10 @@ type SkillHandler struct {
 	store skillStore
 }
 
+type ProjectHandler struct {
+	store projectStore
+}
+
 // NewEmployeeHandler - constructor
 func NewEmployeeHandler(store employeeStore) *EmployeeHandler {
 	return &EmployeeHandler{
@@ -177,4 +181,34 @@ func (h SkillHandler) deleteSkill(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"err": err})
 	}
 	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
+}
+
+// NewProjectHandler - constructor
+func NewProjectHandler(store projectStore) *ProjectHandler {
+	return &ProjectHandler{
+		store: store,
+	}
+}
+
+func (h ProjectHandler) getProjects(context *gin.Context) {
+	projects, err := h.store.List()
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, projects)
+}
+
+func (h ProjectHandler) getProject(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	project, err := h.store.Get(id)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, project)
 }

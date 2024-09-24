@@ -16,36 +16,10 @@ import (
 // TODO tests can be written in .http format
 // TODO also, consider using a router gorilla/mux
 // TODO ids should probably be a uint
-// TODO this code also begins to get pretty repetitive, maybe there is a way to generalize the functions?
-// TODO - implement a nice project structure
 // TODO need way better error messages to get sent, because this fucking sucks dude, no logs, no anything to debug
 // TODO adding, updating, deleting a Client
-// TODO adding, updating, deleting a Project
 // TODO adding, updating, deleting a Skill to an Employee
 // TODO adding, updating, deleting an Employee to a Project
-
-func getProjects(context *gin.Context) {
-	projects, err := sqlGetAllProjects()
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
-		return
-	}
-	context.IndentedJSON(http.StatusOK, projects)
-}
-
-func getProject(context *gin.Context) {
-	strId := context.Params.ByName("id")
-	id, err := strconv.ParseInt(strId, 10, 64)
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	}
-	project, err := sqlGetProject(id)
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
-		return
-	}
-	context.IndentedJSON(http.StatusOK, project)
-}
 
 func getClients(context *gin.Context) {
 	clients, err := sqlGetAllClients()
@@ -161,37 +135,6 @@ func sqlGetFullEmployeeById(id int64) (instances.EmployeeFull, error) {
 }
 
 // TODO the following code seems very similar. Try and find a way to generalize such code
-func sqlGetAllProjects() ([]instances.Project, error) {
-	var projects []instances.Project
-
-	rows, err := db.Query("SELECT * FROM projects")
-	if err != nil {
-		return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var project instances.Project
-		if err := rows.Scan(&project.ProjectId, &project.ClientId, &project.FocusArea, &project.Description, &project.IsSecret); err != nil {
-			return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
-		}
-		projects = append(projects, project)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
-	}
-	return projects, nil
-}
-
-func sqlGetProject(id int64) (instances.Project, error) {
-	var proj instances.Project
-
-	row := db.QueryRow("SELECT * FROM Projects WHERE project_id = ?", id)
-	if err := row.Scan(&proj.ProjectId, &proj.ClientId, &proj.FocusArea, &proj.Description, &proj.IsSecret); err != nil {
-		return instances.Project{}, err
-	}
-	return proj, nil
-}
 
 func sqlGetAllClients() ([]instances.Client, error) {
 	var clients []instances.Client
@@ -245,10 +188,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	projectStore, err := NewProjectStore(cfg)
 	// create handlers
 	empHandler := NewEmployeeHandler(empStore)
 	skillHandler := NewSkillHandler(skillStore)
+	projectHandler := NewProjectHandler(projectStore)
 	//Configure endpoints
 	router := gin.Default()
 	router.Routes()
@@ -261,8 +205,8 @@ func main() {
 	router.GET("/v1/fullEmployees", getFullEmployees)
 	router.GET("/v1/fullEmployees/:id", getFullEmployee)
 
-	router.GET("/v1/projects", getProjects)
-	router.GET("/v1/projects/:id", getProject)
+	router.GET("/v1/projects", projectHandler.getProjects)
+	router.GET("/v1/projects/:id", projectHandler.getProject)
 
 	router.GET("/v1/clients", getClients)
 	router.GET("/v1/clients/:id", getClient)

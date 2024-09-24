@@ -25,6 +25,14 @@ type skillStore interface {
 	Delete(skillId int64) (int64, error)
 }
 
+type projectStore interface {
+	Add(proj instances.Project) (int, error)
+	Get(projId int64) (emp instances.Project, err error)
+	List() ([]instances.Project, error)
+	Update(proj instances.Project) (int64, error)
+	Delete(projId int64) (int64, error)
+}
+
 type MySQLEmployeeStore struct {
 	db *sql.DB
 }
@@ -192,4 +200,69 @@ func (s *MySQLSkillStore) Get(id int64) (instances.Skill, error) {
 		return instances.Skill{}, err
 	}
 	return skill, nil
+}
+
+type MySQLProjectStore struct {
+	db *sql.DB
+}
+
+func NewProjectStore(cfg mysql.Config) (*MySQLProjectStore, error) {
+	// Get a database handle.
+	db, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pingErr := db.Ping()
+	if pingErr != nil {
+		log.Fatal(pingErr)
+	}
+	fmt.Println("Connected!")
+	return &MySQLProjectStore{db: db}, nil
+}
+
+func (s *MySQLProjectStore) List() ([]instances.Project, error) {
+	var projects []instances.Project
+
+	rows, err := s.db.Query("SELECT * FROM projects")
+	if err != nil {
+		return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var project instances.Project
+		if err := rows.Scan(&project.ProjectId, &project.ClientId, &project.FocusArea, &project.Description, &project.IsSecret); err != nil {
+			return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
+		}
+		projects = append(projects, project)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
+	}
+	return projects, nil
+}
+
+func (s *MySQLProjectStore) Get(id int64) (instances.Project, error) {
+	var proj instances.Project
+
+	row := s.db.QueryRow("SELECT * FROM Projects WHERE project_id = ?", id)
+	if err := row.Scan(&proj.ProjectId, &proj.ClientId, &proj.FocusArea, &proj.Description, &proj.IsSecret); err != nil {
+		return instances.Project{}, err
+	}
+	return proj, nil
+}
+
+func (s *MySQLProjectStore) Add(proj instances.Project) (int, error) {
+	//TODO
+	return 0, nil
+}
+
+func (s *MySQLProjectStore) Update(proj instances.Project) (int64, error) {
+	//TODO
+	return 0, nil
+}
+func (s *MySQLProjectStore) Delete(projId int64) (int64, error) {
+	//TODO
+	return 0, nil
 }
