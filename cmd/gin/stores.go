@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/go-sql-driver/mysql"
 	"log"
-	"strconv"
 )
 
 // data store interface for employee
@@ -15,7 +14,15 @@ type employeeStore interface {
 	Get(employeeId int64) (emp instances.Employee, err error)
 	List() ([]instances.Employee, error)
 	Update(emp instances.Employee) (int64, error)
-	Delete(employeeId string) (int64, error)
+	Delete(employeeId int64) (int64, error)
+}
+
+type skillStore interface {
+	Add(skill instances.Skill) (int, error)
+	Get(skillId int64) (emp instances.Skill, err error)
+	List() ([]instances.Skill, error)
+	Update(skill instances.Skill) (int64, error)
+	Delete(skillId int64) (int64, error)
 }
 
 type MySQLEmployeeStore struct {
@@ -52,12 +59,8 @@ func (s *MySQLEmployeeStore) Add(emp instances.Employee) (int, error) {
 	return int(id), nil
 }
 
-func (s *MySQLEmployeeStore) Delete(employeeId string) (int64, error) {
-	id, err := strconv.ParseInt(employeeId, 10, 64)
-	if err != nil {
-		return -1, err
-	}
-	result, err := s.db.Exec("DELETE FROM Employees WHERE employee_id=?", id)
+func (s *MySQLEmployeeStore) Delete(employeeId int64) (int64, error) {
+	result, err := s.db.Exec("DELETE FROM Employees WHERE employee_id=?", employeeId)
 	if err != nil {
 		return -1, err
 	}
@@ -104,4 +107,89 @@ func (s *MySQLEmployeeStore) List() ([]instances.Employee, error) {
 		return nil, fmt.Errorf("sqlGetAllEmployees %v", err)
 	}
 	return employees, nil
+}
+
+type MySQLSkillStore struct {
+	db *sql.DB
+}
+
+func NewMySQLSkillStore(cfg mysql.Config) (*MySQLSkillStore, error) {
+
+	// Get a database handle.
+	db, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pingErr := db.Ping()
+	if pingErr != nil {
+		log.Fatal(pingErr)
+	}
+	fmt.Println("Connected!")
+	return &MySQLSkillStore{db: db}, nil
+}
+
+func (s *MySQLSkillStore) Delete(id int64) (int64, error) {
+	result, err := s.db.Exec("DELETE FROM Skills WHERE skill_id=?", id)
+	if err != nil {
+		return -1, err
+	}
+	return result.RowsAffected()
+}
+
+func (s *MySQLSkillStore) Update(skill instances.Skill) (int64, error) {
+	result, err := s.db.Exec(
+		"UPDATE Skills SET skill_id=?, skill_class=?, skill=? WHERE skill_id = ?",
+		skill.SkillId, skill.SkillClass, skill.Skill, skill.SkillId)
+	if err != nil {
+		return -1, err
+	}
+	return result.RowsAffected()
+}
+
+// We use Skill struct which also contains skill level, as it is usually associated with an Employee.
+// In this case however, we only want to see what Skills are available in database, thus skill level is nil
+func (s *MySQLSkillStore) List() ([]instances.Skill, error) {
+	var skills []instances.Skill
+
+	rows, err := s.db.Query("SELECT skill_id, skill_class, skill FROM Skills")
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var skill instances.Skill
+
+		if err := rows.Scan(&skill.SkillId, &skill.SkillClass, &skill.Skill); err != nil {
+			return nil, err
+		}
+
+		skills = append(skills, skill)
+	}
+	return skills, nil
+}
+
+func (s *MySQLSkillStore) Add(skill instances.Skill) (int, error) {
+	result, err := s.db.Exec(
+		"INSERT INTO Skills (skill_id, skill_class, skill) VALUES (?,?,?)",
+		skill.SkillId, skill.SkillClass, skill.Skill)
+	if err != nil {
+		return -1, err
+	}
+	id, err := result.RowsAffected()
+	if err != nil {
+		return -1, err
+	}
+	return int(id), nil
+}
+
+func (s *MySQLSkillStore) Get(id int64) (instances.Skill, error) {
+	var skill instances.Skill
+	row := s.db.QueryRow("SELECT * FROM Skills WHERE skill_id=?", id)
+	if err := row.Scan(&skill.SkillId, &skill.SkillClass, &skill.Skill); err != nil {
+		return instances.Skill{}, err
+	}
+	return skill, nil
 }

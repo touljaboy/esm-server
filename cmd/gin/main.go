@@ -92,147 +92,6 @@ func getFullEmployee(context *gin.Context) {
 	}
 	context.IndentedJSON(http.StatusOK, fullEmployee)
 }
-
-func getSkills(context *gin.Context) {
-	skills, err := sqlGetSkills()
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
-		return
-	}
-	context.IndentedJSON(http.StatusOK, skills)
-}
-
-func getSkill(context *gin.Context) {
-	strId := context.Params.ByName("id")
-	id, err := strconv.ParseInt(strId, 10, 64)
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	skill, err := sqlGetSkill(id)
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
-		return
-	}
-	context.IndentedJSON(http.StatusOK, skill)
-}
-
-func addSkill(context *gin.Context) {
-	var skill instances.Skill
-	if err := context.BindJSON(&skill); err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
-		return
-	}
-
-	result, err := sqlAddSkill(skill)
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
-		return
-	}
-	context.IndentedJSON(http.StatusCreated, gin.H{"rows_affected": result})
-}
-
-func updateSkill(context *gin.Context) {
-	strId := context.Params.ByName("id")
-	id, err := strconv.ParseInt(strId, 10, 64)
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	}
-	currSkill, err := sqlGetSkill(id)
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
-		return
-	}
-	if err := context.BindJSON(&currSkill); err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
-		return
-	}
-	result, err := sqlUpdateSkill(currSkill)
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
-		return
-	}
-	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
-}
-
-func deleteSkill(context *gin.Context) {
-	id := context.Params.ByName("id")
-	result, err := sqlDeleteSkill(id)
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"err": err})
-	}
-	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
-}
-
-func sqlDeleteSkill(strId string) (int64, error) {
-	id, err := strconv.ParseInt(strId, 10, 64)
-	if err != nil {
-		return -1, err
-	}
-	result, err := db.Exec("DELETE FROM Skills WHERE skill_id=?", id)
-	if err != nil {
-		return -1, err
-	}
-	return result.RowsAffected()
-}
-
-func sqlUpdateSkill(skill instances.Skill) (int64, error) {
-	result, err := db.Exec(
-		"UPDATE Skills SET skill_id=?, skill_class=?, skill=? WHERE skill_id = ?",
-		skill.SkillId, skill.SkillClass, skill.Skill, skill.SkillId)
-	if err != nil {
-		return -1, err
-	}
-	return result.RowsAffected()
-}
-
-// We use Skill struct which also contains skill level, as it is usually associated with an Employee.
-// In this case however, we only want to see what Skills are available in database, thus skill level is nil
-func sqlGetSkills() ([]instances.Skill, error) {
-	var skills []instances.Skill
-
-	rows, err := db.Query("SELECT skill_id, skill_class, skill FROM Skills")
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		var skill instances.Skill
-
-		if err := rows.Scan(&skill.SkillId, &skill.SkillClass, &skill.Skill); err != nil {
-			return nil, err
-		}
-
-		skills = append(skills, skill)
-	}
-	return skills, nil
-}
-
-func sqlAddSkill(skill instances.Skill) (int, error) {
-	result, err := db.Exec(
-		"INSERT INTO Skills (skill_id, skill_class, skill) VALUES (?,?,?)",
-		skill.SkillId, skill.SkillClass, skill.Skill)
-	if err != nil {
-		return -1, err
-	}
-	id, err := result.RowsAffected()
-	if err != nil {
-		return -1, err
-	}
-	return int(id), nil
-}
-
-func sqlGetSkill(id int64) (instances.Skill, error) {
-	var skill instances.Skill
-	row := db.QueryRow("SELECT * FROM Skills WHERE skill_id=?", id)
-	if err := row.Scan(&skill.SkillId, &skill.SkillClass, &skill.Skill); err != nil {
-		return instances.Skill{}, err
-	}
-	return skill, nil
-}
-
 func sqlGetFullEmployees() ([]instances.EmployeeFull, error) {
 	var employeesFull []instances.EmployeeFull
 
@@ -367,6 +226,7 @@ func sqlGetClient(id int64) (instances.Client, error) {
 
 func main() {
 	// Capture connection properties.
+	// TODO read cfg from a separate file in gitignore
 	cfg := mysql.Config{
 		User:                 os.Getenv("DBUSER"),
 		Passwd:               os.Getenv("DBPASS"),
@@ -375,12 +235,20 @@ func main() {
 		DBName:               "esmdb",
 		AllowNativePasswords: true,
 	}
+
+	// create stores
 	empStore, err := NewMySQLEmployeeStore(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
+	skillStore, err := NewMySQLSkillStore(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	// create handlers
 	empHandler := NewEmployeeHandler(empStore)
+	skillHandler := NewSkillHandler(skillStore)
 	//Configure endpoints
 	router := gin.Default()
 	router.Routes()
@@ -399,11 +267,11 @@ func main() {
 	router.GET("/v1/clients", getClients)
 	router.GET("/v1/clients/:id", getClient)
 
-	router.GET("/v1/skills", getSkills)
-	router.GET("/v1/skills/:id", getSkill)
-	router.POST("/v1/skills", addSkill)
-	router.PUT("/v1/skills/:id", updateSkill)
-	router.DELETE("/v1/skills/:id", deleteSkill)
+	router.GET("/v1/skills", skillHandler.getSkills)
+	router.GET("/v1/skills/:id", skillHandler.getSkill)
+	router.POST("/v1/skills", skillHandler.addSkill)
+	router.PUT("/v1/skills/:id", skillHandler.updateSkill)
+	router.DELETE("/v1/skills/:id", skillHandler.deleteSkill)
 
 	router.Run("localhost:9090")
 

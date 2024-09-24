@@ -21,7 +21,7 @@ func SetUpRouter() *gin.Engine {
 // Test adding and deleting an employee in one go, its just logical, since I gotta delete him from the db anyway
 func TestCRUDEmployee(t *testing.T) {
 	//initialize database connection
-	initDB()
+
 	mockResponse := `{
     "rows_affected": 1
 }`
