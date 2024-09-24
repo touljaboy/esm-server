@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"esmAPI/pkg/instances"
 	"github.com/gin-gonic/gin"
+	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/assert"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -20,7 +23,20 @@ func SetUpRouter() *gin.Engine {
 
 // Test adding and deleting an employee in one go, its just logical, since I gotta delete him from the db anyway
 func TestCRUDEmployee(t *testing.T) {
-	//initialize database connection
+	//initialize the empHandler
+	cfg := mysql.Config{
+		User:                 os.Getenv("DBUSER"),
+		Passwd:               os.Getenv("DBPASS"),
+		Net:                  "tcp",
+		Addr:                 "127.0.0.1:3306",
+		DBName:               "esmdb",
+		AllowNativePasswords: true,
+	}
+	empStore, err := NewEmployeeStore(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	empHandler := NewEmployeeHandler(empStore)
 
 	mockResponse := `{
     "rows_affected": 1
@@ -41,7 +57,7 @@ func TestCRUDEmployee(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	eng.POST("/employees", addEmployee)
+	eng.POST("/employees", empHandler.addEmployee)
 	req, _ := http.NewRequest("POST", "/employees", bytes.NewBuffer(jsonData))
 	w := httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -62,7 +78,7 @@ func TestCRUDEmployee(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	eng.PUT("/employees/:id", updateEmployee)
+	eng.PUT("/employees/:id", empHandler.updateEmployee)
 	req, _ = http.NewRequest("PUT", "/employees/0", bytes.NewBuffer(jsonData))
 	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -71,7 +87,7 @@ func TestCRUDEmployee(t *testing.T) {
 	assert.Equal(t, mockResponse, w.Body.String())
 
 	// GET /employees TEST
-	eng.GET("/employees", getEmployees)
+	eng.GET("/employees", empHandler.getEmployees)
 	req, _ = http.NewRequest("GET", "/employees", nil)
 	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -79,7 +95,7 @@ func TestCRUDEmployee(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// GET /employees:id TEST.
-	eng.GET("/employees/:id", getEmployee)
+	eng.GET("/employees/:id", empHandler.getEmployee)
 	req, _ = http.NewRequest("GET", "/employees/0", nil)
 	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -88,7 +104,7 @@ func TestCRUDEmployee(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// DELETE /employees/:id TEST
-	eng.DELETE("/employees/:id", deleteEmployee)
+	eng.DELETE("/employees/:id", empHandler.deleteEmployee)
 	req, _ = http.NewRequest("DELETE", "/employees/0", nil)
 	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -98,13 +114,30 @@ func TestCRUDEmployee(t *testing.T) {
 }
 
 func TestCRUDFullEmployee(t *testing.T) {
-	//initialize the db
-	initDB()
+
+	//initialize the empFullHandler
+	cfg := mysql.Config{
+		User:                 os.Getenv("DBUSER"),
+		Passwd:               os.Getenv("DBPASS"),
+		Net:                  "tcp",
+		Addr:                 "127.0.0.1:3306",
+		DBName:               "esmdb",
+		AllowNativePasswords: true,
+	}
+	empStore, err := NewEmployeeStore(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	empFullStore, err := NewEmployeeFullStore(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	empFullHandler := NewEmployeeFullHandler(empFullStore, empStore)
 
 	eng := SetUpRouter()
 
 	// GET /fullEmployees TEST
-	eng.GET("/fullEmployees", getFullEmployees)
+	eng.GET("/fullEmployees", empFullHandler.getFullEmployees)
 	req, _ := http.NewRequest("GET", "/fullEmployees", nil)
 	w := httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -112,7 +145,7 @@ func TestCRUDFullEmployee(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// GET /fullEmployees:id TEST. If db has no values, this will fail
-	eng.GET("/fullEmployees/:id", getFullEmployee)
+	eng.GET("/fullEmployees/:id", empFullHandler.getFullEmployee)
 	req, _ = http.NewRequest("GET", "/fullEmployees/1", nil)
 	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -124,13 +157,25 @@ func TestCRUDFullEmployee(t *testing.T) {
 }
 
 func TestCRUDProject(t *testing.T) {
-	//initialize the db
-	initDB()
+	//initialize the projHandler
+	cfg := mysql.Config{
+		User:                 os.Getenv("DBUSER"),
+		Passwd:               os.Getenv("DBPASS"),
+		Net:                  "tcp",
+		Addr:                 "127.0.0.1:3306",
+		DBName:               "esmdb",
+		AllowNativePasswords: true,
+	}
+	projStore, err := NewProjectStore(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	projHandler := NewProjectHandler(projStore)
 
 	eng := SetUpRouter()
 
 	// GET /projects TEST
-	eng.GET("/projects", getProjects)
+	eng.GET("/projects", projHandler.getProjects)
 	req, _ := http.NewRequest("GET", "/projects", nil)
 	w := httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -138,7 +183,7 @@ func TestCRUDProject(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// GET /projects/:id TEST. If db has no values, this will fail
-	eng.GET("/projects/:id", getProject)
+	eng.GET("/projects/:id", projHandler.getProject)
 	req, _ = http.NewRequest("GET", "/projects/1", nil)
 	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -150,13 +195,24 @@ func TestCRUDProject(t *testing.T) {
 }
 
 func TestCRUDClient(t *testing.T) {
-	//initialize the db
-	initDB()
-
+	//initialize the clientHandler
+	cfg := mysql.Config{
+		User:                 os.Getenv("DBUSER"),
+		Passwd:               os.Getenv("DBPASS"),
+		Net:                  "tcp",
+		Addr:                 "127.0.0.1:3306",
+		DBName:               "esmdb",
+		AllowNativePasswords: true,
+	}
+	clientStore, err := NewClientStore(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	clientHandler := NewClientHandler(clientStore)
 	eng := SetUpRouter()
 
 	// GET /clients TEST
-	eng.GET("/clients", getClients)
+	eng.GET("/clients", clientHandler.getClients)
 	req, _ := http.NewRequest("GET", "/clients", nil)
 	w := httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -164,7 +220,7 @@ func TestCRUDClient(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// GET /clients/:id TEST. If db has no values, this will fail
-	eng.GET("/clients/:id", getClient)
+	eng.GET("/clients/:id", clientHandler.getClient)
 	req, _ = http.NewRequest("GET", "/clients/1", nil)
 	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -176,8 +232,20 @@ func TestCRUDClient(t *testing.T) {
 }
 
 func TestCRUDSkill(t *testing.T) {
-	//initialize the db
-	initDB()
+	//initialize the skillHandler
+	cfg := mysql.Config{
+		User:                 os.Getenv("DBUSER"),
+		Passwd:               os.Getenv("DBPASS"),
+		Net:                  "tcp",
+		Addr:                 "127.0.0.1:3306",
+		DBName:               "esmdb",
+		AllowNativePasswords: true,
+	}
+	skillStore, err := NewSkillStore(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	skillHandler := NewSkillHandler(skillStore)
 	mockResponse := `{
     "rows_affected": 1
 }`
@@ -193,7 +261,7 @@ func TestCRUDSkill(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	eng.POST("/employees", addSkill)
+	eng.POST("/employees", skillHandler.addSkill)
 	req, _ := http.NewRequest("POST", "/employees", bytes.NewBuffer(jsonData))
 	w := httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -203,7 +271,7 @@ func TestCRUDSkill(t *testing.T) {
 	assert.Equal(t, mockResponse, w.Body.String())
 
 	// GET /skills TEST
-	eng.GET("/skills", getSkills)
+	eng.GET("/skills", skillHandler.getSkills)
 	req, _ = http.NewRequest("GET", "/skills", nil)
 	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -211,7 +279,7 @@ func TestCRUDSkill(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// GET /skills/:id TEST. If db has no values, this will fail
-	eng.GET("/skills/:id", getSkill)
+	eng.GET("/skills/:id", skillHandler.getSkill)
 	req, _ = http.NewRequest("GET", "/skills/0", nil)
 	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -220,7 +288,7 @@ func TestCRUDSkill(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// PUT /skills/:id TEST
-	eng.PUT("/skills/:id", updateSkill)
+	eng.PUT("/skills/:id", skillHandler.updateSkill)
 	skill.Skill = "Mandarin"
 	jsonData, err = json.Marshal(skill)
 	if err != nil {
@@ -233,7 +301,7 @@ func TestCRUDSkill(t *testing.T) {
 	assert.Equal(t, mockResponse, w.Body.String())
 
 	// DELETE /skills/:id TEST
-	eng.DELETE("/skills/:id", deleteSkill)
+	eng.DELETE("/skills/:id", skillHandler.deleteSkill)
 	req, _ = http.NewRequest("DELETE", "/skills/0", nil)
 	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)

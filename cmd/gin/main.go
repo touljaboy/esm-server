@@ -7,7 +7,6 @@ import (
 	"os"
 )
 
-// TODO introduce handlers for each struct type of the REST API
 // TODO introduce a logger
 // TODO tests can be written in .http format
 // TODO also, consider using a router gorilla/mux
@@ -30,11 +29,11 @@ func main() {
 	}
 
 	// create stores
-	empStore, err := NewMySQLEmployeeStore(cfg)
+	empStore, err := NewEmployeeStore(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	skillStore, err := NewMySQLSkillStore(cfg)
+	skillStore, err := NewSkillStore(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -55,7 +54,7 @@ func main() {
 	skillHandler := NewSkillHandler(skillStore)
 	projectHandler := NewProjectHandler(projectStore)
 	clientHandler := NewClientHandler(clientStore)
-	empFullHandler := NewEmployeeFullHandler(empFullStore)
+	empFullHandler := NewEmployeeFullHandler(empFullStore, empStore)
 	//Configure endpoints
 	router := gin.Default()
 	router.Routes()

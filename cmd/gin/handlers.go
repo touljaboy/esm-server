@@ -12,7 +12,8 @@ type EmployeeHandler struct {
 }
 
 type EmployeeFullHandler struct {
-	store employeeFullStore
+	store    employeeFullStore
+	empStore employeeStore
 }
 
 type SkillHandler struct {
@@ -252,14 +253,15 @@ func (h ClientHandler) getClient(context *gin.Context) {
 }
 
 // NewEmployeeFullHandler - constructor
-func NewEmployeeFullHandler(store employeeFullStore) *EmployeeFullHandler {
+func NewEmployeeFullHandler(store employeeFullStore, empStore employeeStore) *EmployeeFullHandler {
 	return &EmployeeFullHandler{
-		store: store,
+		store:    store,
+		empStore: empStore,
 	}
 }
 
 func (h EmployeeFullHandler) getFullEmployees(context *gin.Context) {
-	fullEmployees, err := sqlGetFullEmployees()
+	fullEmployees, err := h.store.List(h.empStore)
 	if err != nil {
 		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
 		return
@@ -273,7 +275,7 @@ func (h EmployeeFullHandler) getFullEmployee(context *gin.Context) {
 	if err != nil {
 		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
-	fullEmployee, err := sqlGetFullEmployeeById(id)
+	fullEmployee, err := h.store.Get(id, h.empStore)
 	if err != nil {
 		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
 		return

@@ -21,8 +21,8 @@ type employeeStore interface {
 type employeeFullStore interface {
 	//TODO add a skill to an employee
 	//TODO associate a project with an employee
-	Get(employeeId int64, empHandler EmployeeHandler) (emp instances.EmployeeFull, err error)
-	List(empHandler EmployeeHandler) ([]instances.EmployeeFull, error)
+	Get(employeeId int64, empStore employeeStore) (emp instances.EmployeeFull, err error)
+	List(empStore employeeStore) ([]instances.EmployeeFull, error)
 }
 
 type skillStore interface {
@@ -53,7 +53,7 @@ type MySQLEmployeeStore struct {
 	db *sql.DB
 }
 
-func NewMySQLEmployeeStore(cfg mysql.Config) (*MySQLEmployeeStore, error) {
+func NewEmployeeStore(cfg mysql.Config) (*MySQLEmployeeStore, error) {
 
 	// Get a database handle.
 	db, err := sql.Open("mysql", cfg.FormatDSN())
@@ -137,7 +137,7 @@ type MySQLSkillStore struct {
 	db *sql.DB
 }
 
-func NewMySQLSkillStore(cfg mysql.Config) (*MySQLSkillStore, error) {
+func NewSkillStore(cfg mysql.Config) (*MySQLSkillStore, error) {
 
 	// Get a database handle.
 	db, err := sql.Open("mysql", cfg.FormatDSN())
@@ -366,18 +366,18 @@ func NewEmployeeFullStore(cfg mysql.Config) (*MySQLEmployeeFullStore, error) {
 	return &MySQLEmployeeFullStore{db: db}, nil
 }
 
-func (s *MySQLEmployeeFullStore) List(empHandler EmployeeHandler) ([]instances.EmployeeFull, error) {
+func (s *MySQLEmployeeFullStore) List(empStore employeeStore) ([]instances.EmployeeFull, error) {
 	var employeesFull []instances.EmployeeFull
 
 	//first, get all the employees
-	employees, err := empHandler.store.List()
+	employees, err := empStore.List()
 	if err != nil {
 		return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
 	}
 
 	//iterate through each employee and find associated projects and skills. Then append employeesFull
 	for _, employee := range employees {
-		employeeFull, err := s.Get(employee.EmployeeId, empHandler)
+		employeeFull, err := s.Get(employee.EmployeeId, empStore)
 		if err != nil {
 			return nil, fmt.Errorf("sqlGetFullEmployeeById: %v", err)
 		}
@@ -387,8 +387,8 @@ func (s *MySQLEmployeeFullStore) List(empHandler EmployeeHandler) ([]instances.E
 	return employeesFull, nil
 }
 
-func (s *MySQLEmployeeFullStore) Get(id int64, empHandler EmployeeHandler) (instances.EmployeeFull, error) {
-	employee, err := empHandler.store.Get(id)
+func (s *MySQLEmployeeFullStore) Get(id int64, empStore employeeStore) (instances.EmployeeFull, error) {
+	employee, err := empStore.Get(id)
 	if err != nil {
 		return instances.EmployeeFull{}, err
 	}
