@@ -18,6 +18,13 @@ type employeeStore interface {
 	Delete(employeeId int64) (int64, error)
 }
 
+type employeeFullStore interface {
+	//TODO add a skill to an employee
+	//TODO associate a project with an employee
+	Get(employeeId int64, empHandler EmployeeHandler) (emp instances.EmployeeFull, err error)
+	List(empHandler EmployeeHandler) ([]instances.EmployeeFull, error)
+}
+
 type skillStore interface {
 	Add(skill instances.Skill) (int, error)
 	Get(skillId int64) (emp instances.Skill, err error)
@@ -338,4 +345,91 @@ func (s *MySQLClientStore) Update(client instances.Client) (int64, error) {
 func (s *MySQLClientStore) Delete(clientId int64) (int64, error) {
 	//TODO
 	return 0, nil
+}
+
+type MySQLEmployeeFullStore struct {
+	db *sql.DB
+}
+
+func NewEmployeeFullStore(cfg mysql.Config) (*MySQLEmployeeFullStore, error) {
+	// Get a database handle.
+	db, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pingErr := db.Ping()
+	if pingErr != nil {
+		log.Fatal(pingErr)
+	}
+	fmt.Println("Connected!")
+	return &MySQLEmployeeFullStore{db: db}, nil
+}
+
+func (s *MySQLEmployeeFullStore) List(empHandler EmployeeHandler) ([]instances.EmployeeFull, error) {
+	var employeesFull []instances.EmployeeFull
+
+	//first, get all the employees
+	employees, err := empHandler.store.List()
+	if err != nil {
+		return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
+	}
+
+	//iterate through each employee and find associated projects and skills. Then append employeesFull
+	for _, employee := range employees {
+		employeeFull, err := s.Get(employee.EmployeeId, empHandler)
+		if err != nil {
+			return nil, fmt.Errorf("sqlGetFullEmployeeById: %v", err)
+		}
+		employeesFull = append(employeesFull, employeeFull)
+	}
+
+	return employeesFull, nil
+}
+
+func (s *MySQLEmployeeFullStore) Get(id int64, empHandler EmployeeHandler) (instances.EmployeeFull, error) {
+	employee, err := empHandler.store.Get(id)
+	if err != nil {
+		return instances.EmployeeFull{}, err
+	}
+
+	var employeeFull instances.EmployeeFull
+	var skills []instances.Skill
+	var projects []instances.ProjectFull
+
+	//find associated skills
+	rows, err := s.db.Query("SELECT s.skill_class, s.skill, e.skill_level FROM EmployeeSkills AS e "+
+		"INNER JOIN Skills AS s ON e.skill_id = s.skill_id WHERE employee_id = ?", employee.EmployeeId)
+	if err != nil {
+		return instances.EmployeeFull{}, fmt.Errorf("sqlGetFullEmployees: %v", err)
+	}
+	for rows.Next() {
+		var skill instances.Skill
+		if err := rows.Scan(&skill.SkillClass, &skill.Skill, &skill.SkillLevel); err != nil {
+			return instances.EmployeeFull{}, fmt.Errorf("sqlGetFullEmployees: %v", err)
+		}
+		skills = append(skills, skill)
+	}
+
+	//find associate projects
+	rows, err = s.db.Query("SELECT a.*, b.employee_role FROM Projects AS a "+
+		"INNER JOIN ProjectDetails as b  ON a.project_id = b.project_id WHERE employee_id = ?", employee.EmployeeId)
+	if err != nil {
+		return instances.EmployeeFull{}, fmt.Errorf("sqlGetFullEmployees: %v", err)
+	}
+	for rows.Next() {
+		var projectFull instances.ProjectFull
+
+		if err := rows.Scan(&projectFull.Project.ProjectId,
+			&projectFull.Project.ClientId, &projectFull.Project.FocusArea,
+			&projectFull.Project.Description, &projectFull.Project.IsSecret, &projectFull.EmployeeRole); err != nil {
+			return instances.EmployeeFull{}, fmt.Errorf("sqlGetFullEmployees: %v", err)
+		}
+		projects = append(projects, projectFull)
+	}
+	employeeFull.Employee = employee
+	employeeFull.Skills = skills
+	employeeFull.Projects = projects
+
+	return employeeFull, nil
 }
