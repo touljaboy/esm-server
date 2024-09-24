@@ -45,16 +45,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	empFullStore, err := NewEmployeeFullStore(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
 	// create handlers
 	empHandler := NewEmployeeHandler(empStore)
 	skillHandler := NewSkillHandler(skillStore)
 	projectHandler := NewProjectHandler(projectStore)
 	clientHandler := NewClientHandler(clientStore)
-	empFullHandler := NewEmployeeFullHandler(empFullStore, empStore)
 	//Configure endpoints
 	router := gin.Default()
 	router.Routes()
@@ -64,8 +59,8 @@ func main() {
 	router.PUT("/v1/employees/:id", empHandler.updateEmployee)
 	router.DELETE("/v1/employees/:id", empHandler.deleteEmployee)
 
-	router.GET("/v1/fullEmployees", empFullHandler.getFullEmployees)
-	router.GET("/v1/fullEmployees/:id", empFullHandler.getFullEmployee)
+	router.GET("/v1/fullEmployees", empHandler.getFullEmployees)
+	router.GET("/v1/fullEmployees/:id", empHandler.getFullEmployee)
 
 	router.GET("/v1/projects", projectHandler.getProjects)
 	router.GET("/v1/projects/:id", projectHandler.getProject)

@@ -111,41 +111,16 @@ func TestCRUDEmployee(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, mockResponse, w.Body.String())
 
-}
-
-func TestCRUDFullEmployee(t *testing.T) {
-
-	//initialize the empFullHandler
-	cfg := mysql.Config{
-		User:                 os.Getenv("DBUSER"),
-		Passwd:               os.Getenv("DBPASS"),
-		Net:                  "tcp",
-		Addr:                 "127.0.0.1:3306",
-		DBName:               "esmdb",
-		AllowNativePasswords: true,
-	}
-	empStore, err := NewEmployeeStore(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-	empFullStore, err := NewEmployeeFullStore(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-	empFullHandler := NewEmployeeFullHandler(empFullStore, empStore)
-
-	eng := SetUpRouter()
-
 	// GET /fullEmployees TEST
-	eng.GET("/fullEmployees", empFullHandler.getFullEmployees)
-	req, _ := http.NewRequest("GET", "/fullEmployees", nil)
-	w := httptest.NewRecorder()
+	eng.GET("/fullEmployees", empHandler.getFullEmployees)
+	req, _ = http.NewRequest("GET", "/fullEmployees", nil)
+	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
 	//test that status is OK
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// GET /fullEmployees:id TEST. If db has no values, this will fail
-	eng.GET("/fullEmployees/:id", empFullHandler.getFullEmployee)
+	eng.GET("/fullEmployees/:id", empHandler.getFullEmployee)
 	req, _ = http.NewRequest("GET", "/fullEmployees/1", nil)
 	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
@@ -153,7 +128,6 @@ func TestCRUDFullEmployee(t *testing.T) {
 	//test that status is OK
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	//TODO add create, update and delete tests
 }
 
 func TestCRUDProject(t *testing.T) {

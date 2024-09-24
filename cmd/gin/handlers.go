@@ -11,11 +11,6 @@ type EmployeeHandler struct {
 	store employeeStore
 }
 
-type EmployeeFullHandler struct {
-	store    employeeFullStore
-	empStore employeeStore
-}
-
 type SkillHandler struct {
 	store skillStore
 }
@@ -108,6 +103,29 @@ func (h EmployeeHandler) getEmployees(context *gin.Context) {
 		return
 	}
 	context.IndentedJSON(http.StatusOK, employees)
+}
+
+func (h EmployeeHandler) getFullEmployees(context *gin.Context) {
+	fullEmployees, err := h.store.ListFull()
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, fullEmployees)
+}
+
+func (h EmployeeHandler) getFullEmployee(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	fullEmployee, err := h.store.GetFull(id)
+	if err != nil {
+		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, fullEmployee)
 }
 
 // NewSkillHandler - constructor
@@ -250,35 +268,4 @@ func (h ClientHandler) getClient(context *gin.Context) {
 		return
 	}
 	context.IndentedJSON(http.StatusOK, client)
-}
-
-// NewEmployeeFullHandler - constructor
-func NewEmployeeFullHandler(store employeeFullStore, empStore employeeStore) *EmployeeFullHandler {
-	return &EmployeeFullHandler{
-		store:    store,
-		empStore: empStore,
-	}
-}
-
-func (h EmployeeFullHandler) getFullEmployees(context *gin.Context) {
-	fullEmployees, err := h.store.List(h.empStore)
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
-		return
-	}
-	context.IndentedJSON(http.StatusOK, fullEmployees)
-}
-
-func (h EmployeeFullHandler) getFullEmployee(context *gin.Context) {
-	strId := context.Params.ByName("id")
-	id, err := strconv.ParseInt(strId, 10, 64)
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	}
-	fullEmployee, err := h.store.Get(id, h.empStore)
-	if err != nil {
-		context.IndentedJSON(http.StatusBadRequest, gin.H{"error": err})
-		return
-	}
-	context.IndentedJSON(http.StatusOK, fullEmployee)
 }

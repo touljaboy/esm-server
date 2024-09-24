@@ -16,13 +16,10 @@ type employeeStore interface {
 	List() ([]instances.Employee, error)
 	Update(emp instances.Employee) (int64, error)
 	Delete(employeeId int64) (int64, error)
-}
-
-type employeeFullStore interface {
+	GetFull(employeeId int64) (emp instances.EmployeeFull, err error)
+	ListFull() ([]instances.EmployeeFull, error)
 	//TODO add a skill to an employee
 	//TODO associate a project with an employee
-	Get(employeeId int64, empStore employeeStore) (emp instances.EmployeeFull, err error)
-	List(empStore employeeStore) ([]instances.EmployeeFull, error)
 }
 
 type skillStore interface {
@@ -366,18 +363,18 @@ func NewEmployeeFullStore(cfg mysql.Config) (*MySQLEmployeeFullStore, error) {
 	return &MySQLEmployeeFullStore{db: db}, nil
 }
 
-func (s *MySQLEmployeeFullStore) List(empStore employeeStore) ([]instances.EmployeeFull, error) {
+func (s *MySQLEmployeeStore) ListFull() ([]instances.EmployeeFull, error) {
 	var employeesFull []instances.EmployeeFull
 
 	//first, get all the employees
-	employees, err := empStore.List()
+	employees, err := s.List()
 	if err != nil {
 		return nil, fmt.Errorf("sqlGetAllProjects: %v", err)
 	}
 
 	//iterate through each employee and find associated projects and skills. Then append employeesFull
 	for _, employee := range employees {
-		employeeFull, err := s.Get(employee.EmployeeId, empStore)
+		employeeFull, err := s.GetFull(employee.EmployeeId)
 		if err != nil {
 			return nil, fmt.Errorf("sqlGetFullEmployeeById: %v", err)
 		}
@@ -387,8 +384,8 @@ func (s *MySQLEmployeeFullStore) List(empStore employeeStore) ([]instances.Emplo
 	return employeesFull, nil
 }
 
-func (s *MySQLEmployeeFullStore) Get(id int64, empStore employeeStore) (instances.EmployeeFull, error) {
-	employee, err := empStore.Get(id)
+func (s *MySQLEmployeeStore) GetFull(id int64) (instances.EmployeeFull, error) {
+	employee, err := s.Get(id)
 	if err != nil {
 		return instances.EmployeeFull{}, err
 	}
