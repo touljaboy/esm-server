@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"esmAPI/pkg/instances"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -29,7 +30,7 @@ func TestCRUDEmployee(t *testing.T) {
 
 	// POST /employees TEST
 	//sample employee to add
-	emp := Employee{
+	emp := instances.Employee{
 		EmployeeId: 0,
 		Name:       "Marco",
 		Lastname:   "Plathweith",
@@ -50,7 +51,7 @@ func TestCRUDEmployee(t *testing.T) {
 	assert.Equal(t, mockResponse, w.Body.String())
 
 	// PUT /employees TEST
-	empUpt := Employee{
+	empUpt := instances.Employee{
 		EmployeeId: 0,
 		Name:       "Pavel",
 		Lastname:   "Markovitz",
@@ -183,7 +184,7 @@ func TestCRUDSkill(t *testing.T) {
 	eng := SetUpRouter()
 
 	// ADD /skills TEST
-	skill := Skill{
+	skill := instances.Skill{
 		SkillId:    0,
 		SkillClass: "Language",
 		Skill:      "Polish",
