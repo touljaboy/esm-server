@@ -14,7 +14,7 @@ type employeeStore interface {
 	Add(emp instances.Employee) (int, error)
 	Get(employeeId int64) (emp instances.Employee, err error)
 	List() ([]instances.Employee, error)
-	Update(emp instances.Employee) (int64, error)
+	Update(currId int64, emp instances.Employee) (int64, error)
 	Delete(employeeId int64) (int64, error)
 	GetFull(employeeId int64) (emp instances.EmployeeFull, err error)
 	ListFull() ([]instances.EmployeeFull, error)
@@ -26,7 +26,7 @@ type skillStore interface {
 	Add(skill instances.Skill) (int, error)
 	Get(skillId int64) (emp instances.Skill, err error)
 	List() ([]instances.Skill, error)
-	Update(skill instances.Skill) (int64, error)
+	Update(currId int64, skill instances.Skill) (int64, error)
 	Delete(skillId int64) (int64, error)
 }
 
@@ -34,7 +34,7 @@ type projectStore interface {
 	Add(proj instances.Project) (int, error)
 	Get(projId int64) (proj instances.Project, err error)
 	List() ([]instances.Project, error)
-	Update(proj instances.Project) (int64, error)
+	Update(currId int64, proj instances.Project) (int64, error)
 	Delete(projId int64) (int64, error)
 }
 
@@ -42,7 +42,7 @@ type clientStore interface {
 	Add(client instances.Client) (int, error)
 	Get(clientId int64) (client instances.Client, err error)
 	List() ([]instances.Client, error)
-	Update(client instances.Client) (int64, error)
+	Update(currId int64, client instances.Client) (int64, error)
 	Delete(clientId int64) (int64, error)
 }
 
@@ -88,10 +88,10 @@ func (s *MySQLEmployeeStore) Delete(employeeId int64) (int64, error) {
 	return result.RowsAffected()
 }
 
-func (s *MySQLEmployeeStore) Update(emp instances.Employee) (int64, error) {
+func (s *MySQLEmployeeStore) Update(currId int64, emp instances.Employee) (int64, error) {
 	result, err := s.db.Exec(
 		"UPDATE Employees SET name=?, lastname=?, focus_area=?, email=? WHERE employee_id = ?",
-		emp.Name, emp.Lastname, emp.FocusArea, emp.Email, emp.EmployeeId)
+		emp.Name, emp.Lastname, emp.FocusArea, emp.Email, currId)
 	if err != nil {
 		return -1, err
 	}
@@ -158,10 +158,10 @@ func (s *MySQLSkillStore) Delete(id int64) (int64, error) {
 	return result.RowsAffected()
 }
 
-func (s *MySQLSkillStore) Update(skill instances.Skill) (int64, error) {
+func (s *MySQLSkillStore) Update(currId int64, skill instances.Skill) (int64, error) {
 	result, err := s.db.Exec(
 		"UPDATE Skills SET skill_id=?, skill_class=?, skill=? WHERE skill_id = ?",
-		skill.SkillId, skill.SkillClass, skill.Skill, skill.SkillId)
+		skill.SkillId, skill.SkillClass, skill.Skill, currId)
 	if err != nil {
 		return -1, err
 	}
@@ -279,10 +279,10 @@ func (s *MySQLProjectStore) Add(proj instances.Project) (int, error) {
 	return int(id), nil
 }
 
-func (s *MySQLProjectStore) Update(proj instances.Project) (int64, error) {
+func (s *MySQLProjectStore) Update(currId int64, proj instances.Project) (int64, error) {
 	result, err := s.db.Exec(
 		"UPDATE Projects SET project_id=?, client_id=?, focus_area=?, description=?, isSecret=? WHERE project_id = ?",
-		proj.ProjectId, proj.ClientId, proj.FocusArea, proj.Description, proj.IsSecret, proj.ProjectId)
+		proj.ProjectId, proj.ClientId, proj.FocusArea, proj.Description, proj.IsSecret, currId)
 	if err != nil {
 		return -1, err
 	}
@@ -359,10 +359,10 @@ func (s *MySQLClientStore) Add(client instances.Client) (int, error) {
 	return int(id), nil
 }
 
-func (s *MySQLClientStore) Update(client instances.Client) (int64, error) {
+func (s *MySQLClientStore) Update(currId int64, client instances.Client) (int64, error) {
 	result, err := s.db.Exec(
 		"UPDATE Clients SET id=?, name=?, description=? WHERE id = ?",
-		client.ID, client.Name, client.Description, client.ID)
+		client.ID, client.Name, client.Description, currId)
 	if err != nil {
 		return -1, err
 	}

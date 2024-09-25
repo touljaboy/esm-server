@@ -61,7 +61,7 @@ func (h EmployeeHandler) updateEmployee(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
-	result, err := h.store.Update(currEmployee)
+	result, err := h.store.Update(id, currEmployee)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"err": err})
 		return
@@ -194,7 +194,7 @@ func (h SkillHandler) updateSkill(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
-	result, err := h.store.Update(currSkill)
+	result, err := h.store.Update(id, currSkill)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"err": err})
 		return
@@ -278,7 +278,7 @@ func (h ProjectHandler) updateProject(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"err": err})
 		return
 	}
-	result, err := h.store.Update(proj)
+	result, err := h.store.Update(id, proj)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"err": err})
 		return
@@ -362,7 +362,7 @@ func (h ClientHandler) updateClient(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"err": err})
 		return
 	}
-	result, err := h.store.Update(client)
+	result, err := h.store.Update(id, client)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"err": err})
 		return
