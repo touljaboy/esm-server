@@ -262,6 +262,30 @@ func (h ProjectHandler) addProject(context *gin.Context) {
 	context.IndentedJSON(http.StatusCreated, gin.H{"rows_affected": result})
 }
 
+func (h ProjectHandler) updateProject(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	proj, err := h.store.Get(id)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"err": err})
+		return
+	}
+	if err := context.BindJSON(&proj); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"err": err})
+		return
+	}
+	result, err := h.store.Update(proj)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"err": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
+}
+
 // NewClientHandler - constructor
 func NewClientHandler(store clientStore) *ClientHandler {
 	return &ClientHandler{

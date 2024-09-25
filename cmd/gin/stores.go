@@ -280,8 +280,13 @@ func (s *MySQLProjectStore) Add(proj instances.Project) (int, error) {
 }
 
 func (s *MySQLProjectStore) Update(proj instances.Project) (int64, error) {
-	//TODO
-	return 0, nil
+	result, err := s.db.Exec(
+		"UPDATE Projects SET project_id=?, client_id=?, focus_area=?, description=?, isSecret=? WHERE project_id = ?",
+		proj.ProjectId, proj.ClientId, proj.FocusArea, proj.Description, proj.IsSecret, proj.ProjectId)
+	if err != nil {
+		return -1, err
+	}
+	return result.RowsAffected()
 }
 func (s *MySQLProjectStore) Delete(projId int64) (int64, error) {
 	//TODO
