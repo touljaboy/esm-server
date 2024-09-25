@@ -70,6 +70,9 @@ func main() {
 
 	router.GET("/v1/clients", clientHandler.getClients)
 	router.GET("/v1/clients/:id", clientHandler.getClient)
+	router.POST("/v1/clients", clientHandler.addClient)
+	router.PUT("v1/clients/:id", clientHandler.updateClient)
+	router.DELETE("v1/clients/:id", clientHandler.deleteClient)
 
 	router.GET("/v1/skills", skillHandler.getSkills)
 	router.GET("/v1/skills/:id", skillHandler.getSkill)

@@ -167,10 +167,57 @@ func TestCRUDProject(t *testing.T) {
 	//test that status is OK
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	//TODO add create, update and delete tests
+	mockResponse := `{
+    "rows_affected": 1
+}`
+
+	//POST /projects test
+	proj := instances.Project{
+		ProjectId:   0,
+		ClientId:    1,
+		FocusArea:   "Banking",
+		Description: "Project for a National Bank",
+		IsSecret:    true,
+	}
+	jsonData, err := json.Marshal(proj)
+	if err != nil {
+		t.Error(err)
+	}
+	eng.POST("/projects", projHandler.addProject)
+	req, _ = http.NewRequest("POST", "/projects", bytes.NewBuffer(jsonData))
+	w = httptest.NewRecorder()
+	eng.ServeHTTP(w, req)
+	//test that status is OK
+	assert.Equal(t, http.StatusCreated, w.Code)
+	//test that 1 row was affected
+	assert.Equal(t, mockResponse, w.Body.String())
+
+	// PUT /projects/:id TEST
+	eng.PUT("/projects/:id", projHandler.updateProject)
+	proj.FocusArea = "Finance"
+	jsonData, err = json.Marshal(proj)
+	if err != nil {
+		t.Error(err)
+	}
+	req, err = http.NewRequest("PUT", "/projects/0", bytes.NewBuffer(jsonData))
+	w = httptest.NewRecorder()
+	eng.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, mockResponse, w.Body.String())
+
+	// DELETE /projects/:id TEST
+	eng.DELETE("/projects/:id", projHandler.deleteProject)
+	req, _ = http.NewRequest("DELETE", "/projects/0", nil)
+	w = httptest.NewRecorder()
+	eng.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, mockResponse, w.Body.String())
 }
 
 func TestCRUDClient(t *testing.T) {
+	mockResponse := `{
+    "rows_affected": 1
+}`
 	//initialize the clientHandler
 	cfg := mysql.Config{
 		User:                 os.Getenv("DBUSER"),
@@ -204,7 +251,45 @@ func TestCRUDClient(t *testing.T) {
 	//test that status is OK
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	//TODO add create, update and delete tests
+	//POST /clients test
+	client := instances.Client{
+		ID:          0,
+		Name:        "Papaguayo co.",
+		Description: "Fruit company based in Brasil",
+	}
+	jsonData, err := json.Marshal(client)
+	if err != nil {
+		t.Error(err)
+	}
+	eng.POST("/clients", clientHandler.addClient)
+	req, _ = http.NewRequest("POST", "/clients", bytes.NewBuffer(jsonData))
+	w = httptest.NewRecorder()
+	eng.ServeHTTP(w, req)
+	//test that status is OK
+	assert.Equal(t, http.StatusCreated, w.Code)
+	//test that 1 row was affected
+	assert.Equal(t, mockResponse, w.Body.String())
+
+	// PUT /clients/:id TEST
+	eng.PUT("/clients/:id", clientHandler.updateClient)
+	client.Name = "Parapara co."
+	jsonData, err = json.Marshal(client)
+	if err != nil {
+		t.Error(err)
+	}
+	req, err = http.NewRequest("PUT", "/clients/0", bytes.NewBuffer(jsonData))
+	w = httptest.NewRecorder()
+	eng.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, mockResponse, w.Body.String())
+
+	// DELETE /clients/:id TEST
+	eng.DELETE("/clients/:id", clientHandler.deleteClient)
+	req, _ = http.NewRequest("DELETE", "/clients/0", nil)
+	w = httptest.NewRecorder()
+	eng.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, mockResponse, w.Body.String())
 }
 
 func TestCRUDSkill(t *testing.T) {
@@ -237,8 +322,8 @@ func TestCRUDSkill(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	eng.POST("/employees", skillHandler.addSkill)
-	req, _ := http.NewRequest("POST", "/employees", bytes.NewBuffer(jsonData))
+	eng.POST("/skills", skillHandler.addSkill)
+	req, _ := http.NewRequest("POST", "/skills", bytes.NewBuffer(jsonData))
 	w := httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
 	//test that status is OK

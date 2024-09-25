@@ -347,36 +347,33 @@ func (s *MySQLClientStore) Get(id int64) (instances.Client, error) {
 }
 
 func (s *MySQLClientStore) Add(client instances.Client) (int, error) {
-	//TODO
-	return 0, nil
+	result, err := s.db.Exec("INSERT INTO Clients (id, name, description)"+
+		" VALUES(?, ?, ?)", client.ID, client.Name, client.Description)
+	if err != nil {
+		return -1, err
+	}
+	id, err := result.RowsAffected()
+	if err != nil {
+		return -1, err
+	}
+	return int(id), nil
 }
 
 func (s *MySQLClientStore) Update(client instances.Client) (int64, error) {
-	//TODO
-	return 0, nil
+	result, err := s.db.Exec(
+		"UPDATE Clients SET id=?, name=?, description=? WHERE id = ?",
+		client.ID, client.Name, client.Description, client.ID)
+	if err != nil {
+		return -1, err
+	}
+	return result.RowsAffected()
 }
 func (s *MySQLClientStore) Delete(clientId int64) (int64, error) {
-	//TODO
-	return 0, nil
-}
-
-type MySQLEmployeeFullStore struct {
-	db *sql.DB
-}
-
-func NewEmployeeFullStore(cfg mysql.Config) (*MySQLEmployeeFullStore, error) {
-	// Get a database handle.
-	db, err := sql.Open("mysql", cfg.FormatDSN())
+	result, err := s.db.Exec("DELETE FROM Clients WHERE id = ?", clientId)
 	if err != nil {
-		log.Fatal(err)
+		return -1, err
 	}
-
-	pingErr := db.Ping()
-	if pingErr != nil {
-		log.Fatal(pingErr)
-	}
-	fmt.Println("Connected!")
-	return &MySQLEmployeeFullStore{db: db}, nil
+	return result.RowsAffected()
 }
 
 func (s *MySQLEmployeeStore) ListFull() ([]instances.EmployeeFull, error) {

@@ -298,7 +298,7 @@ func (h ProjectHandler) deleteProject(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"err": err})
 		return
 	}
-	context.JSON(http.StatusOK, gin.H{"rows_affected": result})
+	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
 }
 
 // NewClientHandler - constructor
@@ -330,4 +330,57 @@ func (h ClientHandler) getClient(context *gin.Context) {
 		return
 	}
 	context.IndentedJSON(http.StatusOK, client)
+}
+
+func (h ClientHandler) addClient(context *gin.Context) {
+	var client instances.Client
+	if err := context.BindJSON(&client); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	result, err := h.store.Add(client)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"err": err})
+		return
+	}
+	context.IndentedJSON(http.StatusCreated, gin.H{"rows_affected": result})
+}
+
+func (h ClientHandler) updateClient(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	client, err := h.store.Get(id)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"err": err})
+		return
+	}
+	if err := context.BindJSON(&client); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"err": err})
+		return
+	}
+	result, err := h.store.Update(client)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"err": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
+}
+
+func (h ClientHandler) deleteClient(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	result, err := h.store.Delete(id)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"err": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
 }
