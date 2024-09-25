@@ -267,8 +267,16 @@ func (s *MySQLProjectStore) Get(id int64) (instances.Project, error) {
 }
 
 func (s *MySQLProjectStore) Add(proj instances.Project) (int, error) {
-	//TODO
-	return 0, nil
+	result, err := s.db.Exec("INSERT INTO Projects (project_id, client_id, focus_area, description, isSecret)"+
+		" VALUES(?, ?, ?, ?, ?)", proj.ProjectId, proj.ClientId, proj.FocusArea, proj.Description, proj.IsSecret)
+	if err != nil {
+		return -1, err
+	}
+	id, err := result.RowsAffected()
+	if err != nil {
+		return -1, err
+	}
+	return int(id), nil
 }
 
 func (s *MySQLProjectStore) Update(proj instances.Project) (int64, error) {

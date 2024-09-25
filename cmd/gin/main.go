@@ -64,6 +64,7 @@ func main() {
 
 	router.GET("/v1/projects", projectHandler.getProjects)
 	router.GET("/v1/projects/:id", projectHandler.getProject)
+	router.POST("/v1/projects", projectHandler.addProject)
 
 	router.GET("/v1/clients", clientHandler.getClients)
 	router.GET("/v1/clients/:id", clientHandler.getClient)
