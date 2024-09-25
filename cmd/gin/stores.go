@@ -289,8 +289,11 @@ func (s *MySQLProjectStore) Update(proj instances.Project) (int64, error) {
 	return result.RowsAffected()
 }
 func (s *MySQLProjectStore) Delete(projId int64) (int64, error) {
-	//TODO
-	return 0, nil
+	result, err := s.db.Exec("DELETE FROM Projects WHERE project_id = ?", projId)
+	if err != nil {
+		return -1, err
+	}
+	return result.RowsAffected()
 }
 
 type MySQLClientStore struct {
