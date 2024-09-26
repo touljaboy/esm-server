@@ -16,6 +16,8 @@ import (
 
 //TODO add tests where errors are expected
 
+//TODO probably divide these tests into smaller unit tests
+
 //Testing each endpoint (testing handlers seems to be more logical and convenient way to go)
 
 func SetUpRouter() *gin.Engine {
@@ -104,6 +106,23 @@ func TestCRUDEmployee(t *testing.T) {
 
 	//test that status is OK
 	assert.Equal(t, http.StatusOK, w.Code)
+
+	// POST /skills/employees/:id TEST
+	eng.POST("/skills/employees/:id", empHandler.addSkill)
+	empSkill := instances.EmployeeSkill{
+		SkillId:    5,
+		SkillLevel: 3,
+	}
+	jsonData, err = json.Marshal(empSkill)
+	if err != nil {
+		t.Error(err)
+	}
+	req, _ = http.NewRequest("POST", "/skills/employees/0", bytes.NewBuffer(jsonData))
+	w = httptest.NewRecorder()
+	eng.ServeHTTP(w, req)
+	//test that status is OK
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, mockResponse, w.Body.String())
 
 	// DELETE /employees/:id TEST
 	eng.DELETE("/employees/:id", empHandler.deleteEmployee)

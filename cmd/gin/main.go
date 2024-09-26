@@ -63,6 +63,7 @@ func main() {
 	router.GET("/v1/fullEmployees/:id", empHandler.getFullEmployee)
 	//special endpoints
 	router.POST("/v1/skills/employees/:id", empHandler.addSkill)
+	router.DELETE("/v1/skills/employees/:id", empHandler.deleteSkill)
 
 	router.GET("/v1/projects", projectHandler.getProjects)
 	router.GET("/v1/projects/:id", projectHandler.getProject)

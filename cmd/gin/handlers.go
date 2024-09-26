@@ -159,6 +159,24 @@ func NewSkillHandler(store skillStore) *SkillHandler {
 	}
 }
 
+func (h EmployeeHandler) deleteSkill(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	var empSkill instances.EmployeeSkill
+	if err := context.BindJSON(&empSkill); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
+	fmt.Println("skillId:", empSkill.SkillId)
+	result, err := h.store.DeleteSkill(id, empSkill.SkillId)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
+	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
+}
+
 func (h SkillHandler) getSkills(context *gin.Context) {
 	skills, err := h.store.List()
 	if err != nil {

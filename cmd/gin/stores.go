@@ -19,6 +19,8 @@ type employeeStore interface {
 	GetFull(employeeId int64) (emp instances.EmployeeFull, err error)
 	ListFull() ([]instances.EmployeeFull, error)
 	AddSkill(employeeId int64, skillId int64, skillLevel int64) (int64, error)
+	DeleteSkill(employeeId int64, skillId int64) (int64, error)
+	UpdateSkill(employeeId int64, skillId int64, skillLevel int64) (int64, error)
 	//TODO add a skill to an employee
 	//TODO associate a project with an employee
 }
@@ -452,4 +454,22 @@ func (s *MySQLEmployeeStore) AddSkill(employeeId int64, skillId int64, skillLeve
 		return -1, err
 	}
 	return result.RowsAffected()
+}
+
+func (s *MySQLEmployeeStore) DeleteSkill(employeeId int64, skillId int64) (int64, error) {
+	result, err := s.db.Exec("DELETE FROM EmployeeSkills WHERE employee_id=? AND skill_id = ?",
+		employeeId, skillId)
+	if err != nil {
+		return -1, err
+	}
+	return result.RowsAffected()
+}
+
+func (s *MySQLEmployeeStore) UpdateSkill(employeeId int64, skillId int64, skillLevel int64) (int64, error) {
+	results, err := s.db.Exec("UPDATE EmployeeSkills SET skill_level=? WHERE employee_id=? AND skill_id=?",
+		skillLevel, employeeId, skillId)
+	if err != nil {
+		return -1, err
+	}
+	return results.RowsAffected()
 }
