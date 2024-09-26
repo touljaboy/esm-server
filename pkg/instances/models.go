@@ -43,3 +43,8 @@ type EmployeeFull struct {
 	Skills   []Skill       `json:"skills"`
 	Projects []ProjectFull `json:"projects"`
 }
+
+type EmployeeSkill struct {
+	SkillId    int64 `json:"skill_id"`
+	SkillLevel int64 `json:"skill_level"`
+}
