@@ -138,16 +138,19 @@ func (h EmployeeHandler) addSkill(context *gin.Context) {
 	id, err := strconv.ParseInt(strId, 10, 64)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 	var empSkill instances.EmployeeSkill
 	if err := context.BindJSON(&empSkill); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
 	}
 
 	fmt.Printf("empdId:%d, skillId: %d, skillLevel: %d", id, empSkill.SkillId, empSkill.SkillLevel)
 	result, err := h.store.AddSkill(id, empSkill.SkillId, empSkill.SkillLevel)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
 	}
 	context.IndentedJSON(http.StatusCreated, gin.H{"rows_affected": result})
 }
@@ -164,14 +167,17 @@ func (h EmployeeHandler) deleteSkill(context *gin.Context) {
 	id, err := strconv.ParseInt(strId, 10, 64)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 	var empSkill instances.EmployeeSkill
 	if err := context.BindJSON(&empSkill); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
 	}
 	result, err := h.store.DeleteSkill(id, empSkill.SkillId)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
 	}
 	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
 }
@@ -181,16 +187,79 @@ func (h EmployeeHandler) updateSkill(context *gin.Context) {
 	id, err := strconv.ParseInt(strId, 10, 64)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 	var empSkill instances.EmployeeSkill
 	if err := context.BindJSON(&empSkill); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
 	}
 	result, err := h.store.UpdateSkill(id, empSkill.SkillId, empSkill.SkillLevel)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
 	}
 	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
+}
+
+func (h EmployeeHandler) addProject(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	var empProject instances.EmployeeProject
+	if err := context.BindJSON(&empProject); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	result, err := h.store.AddProject(empProject.ProjectId, id, empProject.ProjectRole)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusCreated, gin.H{"rows_affected": result})
+}
+
+func (h EmployeeHandler) updateProject(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	var empProject instances.EmployeeProject
+	if err := context.BindJSON(&empProject); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	result, err := h.store.UpdateProject(empProject.ProjectId, id, empProject.ProjectRole)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
+}
+
+func (h EmployeeHandler) deleteProject(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	var empProject instances.EmployeeProject
+	if err := context.BindJSON(&empProject); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	result, err := h.store.DeleteProject(empProject.ProjectId, id)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	context.JSON(http.StatusOK, gin.H{"rows_affected": result})
 }
 
 func (h SkillHandler) getSkills(context *gin.Context) {

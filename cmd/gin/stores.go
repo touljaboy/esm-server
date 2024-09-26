@@ -21,7 +21,9 @@ type employeeStore interface {
 	AddSkill(employeeId int64, skillId int64, skillLevel int64) (int64, error)
 	DeleteSkill(employeeId int64, skillId int64) (int64, error)
 	UpdateSkill(employeeId int64, skillId int64, skillLevel int64) (int64, error)
-	//TODO add a skill to an employee
+	AddProject(projectId int64, employeeId int64, employeeRole string) (int64, error)
+	DeleteProject(projectId int64, employeeId int64) (int64, error)
+	UpdateProject(projectId int64, employeeId int64, employeeRole string) (int64, error)
 	//TODO associate a project with an employee
 }
 
@@ -472,4 +474,29 @@ func (s *MySQLEmployeeStore) UpdateSkill(employeeId int64, skillId int64, skillL
 		return -1, err
 	}
 	return results.RowsAffected()
+}
+
+func (s *MySQLEmployeeStore) AddProject(projectId int64, employeeId int64, projectRole string) (int64, error) {
+	result, err := s.db.Exec("INSERT INTO ProjectDetails (project_id, employee_id, employee_role) VALUES (?,?,?)",
+		projectId, employeeId, projectRole)
+	if err != nil {
+		return -1, err
+	}
+	return result.RowsAffected()
+}
+func (s *MySQLEmployeeStore) UpdateProject(projectId int64, employeeId int64, projectRole string) (int64, error) {
+	result, err := s.db.Exec("UPDATE ProjectDetails SET employee_role=? WHERE project_id=? AND employee_id=?",
+		projectRole, projectId, employeeId)
+	if err != nil {
+		return -1, err
+	}
+	return result.RowsAffected()
+}
+func (s *MySQLEmployeeStore) DeleteProject(projectId int64, employeeId int64) (int64, error) {
+	result, err := s.db.Exec("DELETE FROM ProjectDetails WHERE project_id=? AND employee_id=?",
+		projectId, employeeId)
+	if err != nil {
+		return -1, err
+	}
+	return result.RowsAffected()
 }

@@ -65,6 +65,9 @@ func main() {
 	router.POST("/v1/skills/employees/:id", empHandler.addSkill)
 	router.DELETE("/v1/skills/employees/:id", empHandler.deleteSkill)
 	router.PUT("/v1/skills/employees/:id", empHandler.updateSkill)
+	router.POST("/v1/projects/employees/:id", empHandler.addProject)
+	router.DELETE("/v1/projects/employees/:id", empHandler.deleteProject)
+	router.PUT("/v1/projects/employees/:id", empHandler.updateProject)
 
 	router.GET("/v1/projects", projectHandler.getProjects)
 	router.GET("/v1/projects/:id", projectHandler.getProject)
