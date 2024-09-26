@@ -17,6 +17,8 @@ import (
 //TODO add tests where errors are expected
 
 //TODO probably divide these tests into smaller unit tests
+//TODO TESTS for CRUD skills/employees/:id
+//TODO Tests for CRUD projects/employees/:id
 
 //Testing each endpoint (testing handlers seems to be more logical and convenient way to go)
 
@@ -121,14 +123,70 @@ func TestCRUDEmployee(t *testing.T) {
 	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
 	//test that status is OK
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, mockResponse, w.Body.String())
+
+	// PUT /skills/employees/:id test
+	eng.PUT("/skills/employees/:id", empHandler.updateSkill)
+	empSkill.SkillLevel = 2
+	jsonData, err = json.Marshal(empSkill)
+	if err != nil {
+		t.Error(err)
+	}
+	req, _ = http.NewRequest("PUT", "/skills/employees/0", bytes.NewBuffer(jsonData))
+	w = httptest.NewRecorder()
+	eng.ServeHTTP(w, req)
+	//test that status is OK
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, mockResponse, w.Body.String())
 
-	// DELETE /employees/:id TEST
-	eng.DELETE("/employees/:id", empHandler.deleteEmployee)
-	req, _ = http.NewRequest("DELETE", "/employees/0", nil)
+	// DELETE /skills/employees/:id test
+	eng.DELETE("/skills/employees/:id", empHandler.deleteSkill)
+	req, _ = http.NewRequest("DELETE", "/skills/employees/0", bytes.NewBuffer(jsonData))
 	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
+	//test that status is OK
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, mockResponse, w.Body.String())
+
+	// POST /projects/employees/:id test
+	eng.POST("/projects/employees/:id", empHandler.addProject)
+	empProj := instances.EmployeeProject{
+		ProjectId:   2,
+		ProjectRole: "Senior Dev",
+	}
+	jsonData, err = json.Marshal(empProj)
+	if err != nil {
+		t.Error(err)
+	}
+	req, _ = http.NewRequest("POST", "/projects/employees/0", bytes.NewBuffer(jsonData))
+	w = httptest.NewRecorder()
+	eng.ServeHTTP(w, req)
+	//test that status is OK
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, mockResponse, w.Body.String())
+
+	// PUT /projects/employees/:id test
+	eng.PUT("/projects/employees/:id", empHandler.updateProject)
+	empProj.ProjectRole = "Lead Developer"
+	jsonData, err = json.Marshal(empProj)
+	if err != nil {
+		t.Error(err)
+	}
+	req, _ = http.NewRequest("PUT", "/projects/employees/0", bytes.NewBuffer(jsonData))
+	w = httptest.NewRecorder()
+	eng.ServeHTTP(w, req)
+	//test that status is OK
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, mockResponse, w.Body.String())
+
+	// DELETE /projects/employees/:id test
+	eng.DELETE("/projects/employees/:id", empHandler.deleteProject)
+	print("\n\n", jsonData, "\n\n")
+	req, _ = http.NewRequest("DELETE", "/projects/employees/0", bytes.NewBuffer(jsonData))
+	w = httptest.NewRecorder()
+	eng.ServeHTTP(w, req)
+	//test that status is OK
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, mockResponse, w.Body.String())
 
@@ -145,6 +203,14 @@ func TestCRUDEmployee(t *testing.T) {
 	req, _ = http.NewRequest("GET", "/fullEmployees/1", nil)
 	w = httptest.NewRecorder()
 	eng.ServeHTTP(w, req)
+
+	// DELETE /employees/:id TEST
+	eng.DELETE("/employees/:id", empHandler.deleteEmployee)
+	req, _ = http.NewRequest("DELETE", "/employees/0", nil)
+	w = httptest.NewRecorder()
+	eng.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, mockResponse, w.Body.String())
 
 	//test that status is OK
 	assert.Equal(t, http.StatusOK, w.Code)

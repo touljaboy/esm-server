@@ -259,7 +259,7 @@ func (h EmployeeHandler) deleteProject(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
-	context.JSON(http.StatusOK, gin.H{"rows_affected": result})
+	context.IndentedJSON(http.StatusOK, gin.H{"rows_affected": result})
 }
 
 func (h SkillHandler) getSkills(context *gin.Context) {
