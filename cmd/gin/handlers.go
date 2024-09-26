@@ -2,6 +2,7 @@ package main
 
 import (
 	"esmAPI/pkg/instances"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -130,6 +131,25 @@ func (h EmployeeHandler) getFullEmployee(context *gin.Context) {
 		return
 	}
 	context.IndentedJSON(http.StatusOK, fullEmployee)
+}
+
+func (h EmployeeHandler) addSkill(context *gin.Context) {
+	strId := context.Params.ByName("id")
+	id, err := strconv.ParseInt(strId, 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	var empSkill instances.EmployeeSkill
+	if err := context.BindJSON(&empSkill); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
+
+	fmt.Printf("empdId:%d, skillId: %d, skillLevel: %d", id, empSkill.SkillId, empSkill.SkillLevel)
+	result, err := h.store.AddSkill(id, empSkill.SkillId, empSkill.SkillLevel)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
+	context.IndentedJSON(http.StatusCreated, gin.H{"rows_affected": result})
 }
 
 // NewSkillHandler - constructor
